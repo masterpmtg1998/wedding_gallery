@@ -122,7 +122,7 @@ export default function AddPhotos(){
         setDone(i+1);
       }
       photos.forEach(p=>URL.revokeObjectURL(p.preview));
-      nav('/minhas-fotos');
+      nav('/album');
     }catch(e:any){
       setError(e?.message||'Não foi possível enviar as fotografias.');
     }finally{
