@@ -26,31 +26,30 @@ export async function getCatalog() {
   return { guests: (guests ?? []) as Guest[], moments: (moments ?? []) as Moment[] };
 }
 
-async function getPeopleFor(photoIds:string[]) {
-  if (!photoIds.length) return new Map<string, number[]>();
-  const {data,error} = await supabase.from('photo_people').select('photo_id,guest_id').in('photo_id', photoIds);
-  if (error) throw error;
-  const map = new Map<string, number[]>();
-  for (const row of data ?? []) {
-    const list = map.get(row.photo_id) ?? [];
-    list.push(Number(row.guest_id));
-    map.set(row.photo_id, list);
-  }
-  return map;
-}
-
-export async function getGallery() {
-  const {data,error} = await supabase.from('photos').select('id,storage_path,moment_id,uploader_guest_id,original_name,width,height,file_size,created_at').order('created_at',{ascending:false});
+export async function getGalleryPage(momentId:number|null, personId:number|null, offset=0, limit=60) {
+  const {data,error} = await supabase.rpc('get_gallery_page',{
+    p_moment_id:momentId,
+    p_person_id:personId,
+    p_offset:offset,
+    p_limit:limit,
+  });
   if (error) throw error;
   const rows = data ?? [];
-  const people = await getPeopleFor(rows.map(r=>r.id));
-  return rows.map(r => ({
-    ...r,
-    moment_id: Number(r.moment_id),
-    uploader_guest_id: r.uploader_guest_id == null ? null : Number(r.uploader_guest_id),
-    url: publicPhotoUrl(r.storage_path),
-    person_ids: people.get(r.id) ?? [],
+  const total = rows.length ? Number(rows[0].total_count ?? rows.length) : 0;
+  const photos = rows.map((r:any) => ({
+    id:r.id,
+    storage_path:r.storage_path,
+    moment_id:Number(r.moment_id),
+    uploader_guest_id:r.uploader_guest_id == null ? null : Number(r.uploader_guest_id),
+    original_name:r.original_name,
+    width:r.width,
+    height:r.height,
+    file_size:r.file_size,
+    created_at:r.created_at,
+    url:publicPhotoUrl(r.storage_path),
+    person_ids:(r.person_ids ?? []).map(Number),
   })) as Photo[];
+  return {photos,total};
 }
 
 async function preparePhoto(file: File) {
