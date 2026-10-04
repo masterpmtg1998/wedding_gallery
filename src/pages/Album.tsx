@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Images } from 'lucide-react';
+import { Images, X } from 'lucide-react';
 import { Page } from '../components/navigation';
-import { getGalleryPage, type Photo } from '../api';
+import { getGalleryPage, recordPhotoView, type Photo } from '../api';
 import { useCatalog } from '../hooks/useCatalog';
 
 const PAGE_SIZE=60;
@@ -15,6 +15,7 @@ export default function Album(){
   const [error,setError]=useState('');
   const [moment,setMoment]=useState<number|null>(null);
   const [person,setPerson]=useState<number|null>(null);
+  const [selected,setSelected]=useState<Photo|null>(null);
 
   const load=async(reset:boolean)=>{
     reset?setLoading(true):setLoadingMore(true);
@@ -32,9 +33,12 @@ export default function Album(){
     }
   };
 
-  useEffect(()=>{
-    void load(true);
-  },[moment,person]);
+  useEffect(()=>{ void load(true); },[moment,person]);
+
+  const openPhoto=(photo:Photo)=>{
+    setSelected(photo);
+    void recordPhotoView(photo.id).catch(()=>{});
+  };
 
   return <Page title="Álbum">
     <div className="album-intro">
@@ -61,7 +65,9 @@ export default function Album(){
         <div className="album-grid">{photos.map(p=>{
           const uploader=guests.find(g=>g.id===p.uploader_guest_id)?.name || 'Convidado';
           return <article className="album-card" key={p.id}>
-            <img className="photo" src={p.url} alt="Fotografia do casamento" loading="lazy"/>
+            <button className="photo-open" onClick={()=>openPhoto(p)} aria-label="Abrir fotografia">
+              <img className="photo" src={p.url} alt="Fotografia do casamento" loading="lazy"/>
+            </button>
             <div className="photo-meta">Publicada por <strong>{uploader}</strong></div>
           </article>;
         })}</div>
@@ -72,5 +78,13 @@ export default function Album(){
         </div>}
       </>
       :<div className="empty"><Images size={34}/><strong>Ainda não há fotos aqui</strong><span>Publica a primeira fotografia.</span></div>)}
+
+    {selected&&<div className="lightbox" role="dialog" aria-modal="true" onClick={()=>setSelected(null)}>
+      <button className="lightbox-close" onClick={()=>setSelected(null)} aria-label="Fechar"><X size={22}/></button>
+      <img src={selected.url} alt="Fotografia ampliada" onClick={e=>e.stopPropagation()}/>
+      <div className="lightbox-meta">
+        Publicada por <strong>{guests.find(g=>g.id===selected.uploader_guest_id)?.name||'Convidado'}</strong>
+      </div>
+    </div>}
   </Page>;
 }
