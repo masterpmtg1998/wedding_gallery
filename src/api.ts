@@ -1,3 +1,4 @@
+import { compress } from 'compresso.js';
 import { PHOTO_BUCKET, getDeviceToken, publicPhotoUrl, sha256, supabase } from './supabase';
 
 export type Guest = { id:number; name:string; side:string|null; group_name:string|null; active:boolean };
@@ -68,25 +69,27 @@ export async function getMyPhotos() {
   })) as Photo[];
 }
 
-function extensionFor(file: File) {
-  const fromName = file.name.split('.').pop()?.toLowerCase();
-  if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) return fromName;
-  if (file.type === 'image/png') return 'png';
-  if (file.type === 'image/webp') return 'webp';
-  if (file.type === 'image/heic') return 'heic';
-  if (file.type === 'image/heif') return 'heif';
-  return 'jpg';
+async function preparePhoto(file: File) {
+  const result = await compress(file, {
+    quality: 0.9,
+    maxWidth: 4096,
+    maxHeight: 4096,
+    maxSizeMB: 4,
+    format: 'jpeg',
+  });
+  return result.file;
 }
 
 export async function uploadPhoto(file:File, momentId:number, guestId:number|null, personIds:number[]) {
   const token = getDeviceToken();
   const sessionHash = await sha256(token);
   const id = crypto.randomUUID();
-  const path = `uploads/${sessionHash.slice(0,16)}/${id}.${extensionFor(file)}`;
+  const prepared = await preparePhoto(file);
+  const path = `uploads/${sessionHash.slice(0,16)}/${id}.jpg`;
 
-  const {error: uploadError} = await supabase.storage.from(PHOTO_BUCKET).upload(path,file,{
+  const {error: uploadError} = await supabase.storage.from(PHOTO_BUCKET).upload(path,prepared,{
     cacheControl:'3600',
-    contentType:file.type || 'image/jpeg',
+    contentType:'image/jpeg',
     upsert:false,
   });
   if (uploadError) throw uploadError;
@@ -98,7 +101,7 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
     uploader_guest_id:guestId,
     uploader_session_hash:sessionHash,
     original_name:file.name.slice(0,240),
-    file_size:file.size,
+    file_size:prepared.size,
   }).select('id').single();
 
   if (photoError) {
