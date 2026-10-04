@@ -18,6 +18,7 @@ export type Photo = {
 };
 
 export const DEFAULT_WEDDING_SLUG='pedro-tania';
+export async function getPublicWedding(slug=DEFAULT_WEDDING_SLUG){const {data,error}=await supabase.rpc('get_public_wedding',{p_slug:slug});if(error)throw error;return data?.[0]??null;}
 
 export async function getCatalog(slug=DEFAULT_WEDDING_SLUG) {
   const [{data: guests, error: ge}, {data: moments, error: me}, {data: tables, error: te}] = await Promise.all([
