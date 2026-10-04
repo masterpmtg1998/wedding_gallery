@@ -12,7 +12,8 @@
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "wouter": "latest"
+    "wouter": "latest",
+    "@supabase/supabase-js": "2.117.2"
   },
   "devDependencies": {
     "@types/react": "latest",
