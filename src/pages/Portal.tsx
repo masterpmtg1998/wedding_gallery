@@ -4,31 +4,48 @@ import { getManagedLandingMedia, getMyWedding, updateLandingFocal, uploadLanding
 import { supabase } from '../supabase';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
+type AuthMode='login'|'signup'|'forgot';
 
 export default function Portal(){
   const [email,setEmail]=useState('');
-  const [sent,setSent]=useState(false);
+  const [password,setPassword]=useState('');
+  const [mode,setMode]=useState<AuthMode>('login');
   const [loading,setLoading]=useState(true);
   const [wedding,setWedding]=useState<any>(null);
+  const [signedIn,setSignedIn]=useState(false);
   const [items,setItems]=useState<Item[]>([]);
   const [message,setMessage]=useState('');
 
   async function load(){
     setLoading(true);
     try{
-      const w=await getMyWedding();
+      const {data:{session}}=await supabase.auth.getSession();
+      setSignedIn(Boolean(session));
+      const w=session?await getMyWedding():null;
       setWedding(w);
-      if(w) setItems(await getManagedLandingMedia(w.id) as Item[]);
+      if(w)setItems(await getManagedLandingMedia(w.id) as Item[]);
+      else setItems([]);
     }catch(e:any){setMessage(e.message||'Não foi possível abrir o portal.')}
     finally{setLoading(false)}
   }
-  useEffect(()=>{load(); const {data}=supabase.auth.onAuthStateChange(()=>setTimeout(load,0)); return()=>data.subscription.unsubscribe()},[]);
+  useEffect(()=>{load();const {data}=supabase.auth.onAuthStateChange(()=>setTimeout(load,0));return()=>data.subscription.unsubscribe()},[]);
 
-  async function login(e:React.FormEvent){
-    e.preventDefault(); setMessage('');
-    const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+'/portal',shouldCreateUser:false}});
-    if(error)setMessage(error.message); else setSent(true);
+  async function authenticate(e:React.FormEvent){
+    e.preventDefault();setMessage('');
+    if(mode==='forgot'){
+      const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/portal'});
+      setMessage(error?error.message:'Enviámos as instruções de recuperação para o teu email.');
+      return;
+    }
+    if(mode==='signup'){
+      const {error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+'/portal'}});
+      setMessage(error?error.message:'Conta criada. Confirma o teu email para continuar.');
+      return;
+    }
+    const {error}=await supabase.auth.signInWithPassword({email,password});
+    if(error)setMessage('Email ou palavra-passe incorretos.');
   }
+
   async function replace(slot:number,file?:File){
     if(!file||!wedding)return;
     setMessage('A carregar original…');
@@ -42,19 +59,34 @@ export default function Portal(){
   }
 
   if(loading)return <main className="portal-shell"><div className="portal-card">A preparar o portal…</div></main>;
-  if(!wedding)return <main className="portal-shell"><section className="portal-card portal-login">
-    <div className="landing-kicker">Portal dos Noivos</div><h1>Gerir casamento</h1>
-    <p>Entra com o email autorizado para este casamento.</p>
-    {sent?<div className="notice">Enviámos-te um link de acesso. Abre o email neste dispositivo.</div>:
-    <form onSubmit={login}><input className="search" type="email" required placeholder="O teu email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="primary" type="submit">Enviar link de acesso</button></form>}
+
+  if(!signedIn)return <main className="portal-shell"><section className="portal-card portal-login">
+    <div className="landing-kicker">Portal dos Noivos</div>
+    <h1>{mode==='login'?'Entrar':mode==='signup'?'Criar conta':'Recuperar acesso'}</h1>
+    <p>{mode==='login'?'Gere o teu casamento, convidados, mesas e fotografias num só lugar.':mode==='signup'?'Cria a tua conta. Depois poderás criar ou aceitar acesso a um casamento.':'Indica o email da tua conta e enviamos as instruções.'}</p>
+    <form onSubmit={authenticate}>
+      <input className="search" type="email" autoComplete="email" required placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+      {mode!=='forgot'&&<input className="search" type="password" autoComplete={mode==='login'?'current-password':'new-password'} required minLength={8} placeholder="Palavra-passe" value={password} onChange={e=>setPassword(e.target.value)}/>}
+      <button className="primary" type="submit">{mode==='login'?'Entrar':mode==='signup'?'Criar conta':'Recuperar palavra-passe'}</button>
+    </form>
+    <div className="auth-links">
+      {mode==='login'&&<><button onClick={()=>{setMode('forgot');setMessage('')}}>Esqueci-me da palavra-passe</button><button onClick={()=>{setMode('signup');setMessage('')}}>Criar conta</button></>}
+      {mode!=='login'&&<button onClick={()=>{setMode('login');setMessage('')}}>← Voltar ao login</button>}
+    </div>
     {message&&<p className="notice">{message}</p>}
+  </section></main>;
+
+  if(!wedding)return <main className="portal-shell"><section className="portal-card portal-login">
+    <div className="landing-kicker">Portal dos Noivos</div><h1>A tua conta está pronta</h1>
+    <p>Ainda não tens nenhum casamento associado a esta conta. A criação de um novo casamento e os convites de equipa entram no próximo passo do onboarding comercial.</p>
+    <button className="primary" onClick={()=>supabase.auth.signOut()}>Sair</button>
   </section></main>;
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Portal dos Noivos</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
     <nav className="portal-tabs"><button className="active">Personalização</button><button disabled>Convidados</button><button disabled>Mesas</button><button disabled>Fotografias</button></nav>
     <section className="portal-card">
-      <div className="portal-section-title"><div><span>Landing page</span><h2>Fotos de abertura</h2><p>Carrega os originais. Depois ajusta o ponto principal da imagem sem cortar ou alterar o ficheiro.</p></div><ImagePlus size={25}/></div>
+      <div className="portal-section-title"><div><span>Landing page</span><h2>Fotos de abertura</h2><p>Carrega os originais. Depois ajusta o ponto principal da imagem sem alterar o ficheiro.</p></div><ImagePlus size={25}/></div>
       <div className="branding-grid">{[1,2,3,4].map(slot=>{
         const item=items.find(i=>i.slot===slot);
         return <article className="branding-card" key={slot}>
