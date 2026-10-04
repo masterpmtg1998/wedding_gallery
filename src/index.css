@@ -576,3 +576,34 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
 .guest-label{display:flex;flex-direction:column;gap:2px;min-width:0}
 .guest-label strong{font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .guest-label small{font-size:9px;color:var(--muted);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.welcome-chip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;margin:0 0 18px;padding:8px 12px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(17,28,23,.24);backdrop-filter:blur(8px);font-size:10px;letter-spacing:.04em;color:rgba(255,250,242,.84)}
+.welcome-chip strong{font-weight:600;color:#fffaf2}
+.landing-actions{display:flex;gap:10px;margin-top:14px}
+.landing-secondary{min-height:42px;padding:0 16px;border:1px solid rgba(255,255,255,.28);border-radius:999px;display:flex;align-items:center;gap:7px;color:#fffaf2;font-size:10px;text-transform:uppercase;letter-spacing:.08em;background:rgba(16,25,22,.18);backdrop-filter:blur(8px)}
+.my-table-card{margin:-4px 0 24px 56px;border-radius:22px;padding:18px 20px;background:rgba(255,253,249,.84);border:1px solid rgba(126,111,88,.16);box-shadow:0 12px 28px rgba(52,45,37,.04)}
+.my-table-card span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#9b8967}
+.my-table-card strong{display:block;font-family:'Fraunces',serif;font-size:27px;font-weight:300;margin-top:4px}
+.my-table-card small{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.45}
+.my-table-card.ready{border-color:rgba(34,54,47,.24)}
+.tables-list{display:grid;gap:14px}
+.table-card{padding:18px;border-radius:22px;background:rgba(255,253,249,.78);border:1px solid rgba(126,111,88,.14)}
+.table-card.mine{border-color:rgba(179,154,106,.52);box-shadow:0 10px 26px rgba(179,154,106,.08)}
+.table-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.table-card-head span{font-size:8px;text-transform:uppercase;letter-spacing:.13em;color:#9b8967}
+.table-card-head h2{font-family:'Fraunces',serif;font-size:24px;font-weight:300;margin:2px 0 0}
+.table-count{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.table-people{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.table-people span{padding:7px 10px;border-radius:999px;background:var(--paper);border:1px solid rgba(126,111,88,.12);font-size:10px}
+.tables-empty{min-height:260px}
+.photo-open{display:block;width:100%;padding:0;border:0;background:transparent}
+.lightbox{position:fixed;inset:0;z-index:100;background:rgba(11,15,13,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px max(28px,env(safe-area-inset-bottom))}
+.lightbox img{max-width:min(100%,980px);max-height:80dvh;object-fit:contain;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.lightbox-close{position:absolute;top:max(20px,env(safe-area-inset-top));right:20px;width:44px;height:44px;border:1px solid rgba(255,255,255,.22);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.10);color:white;backdrop-filter:blur(8px)}
+.lightbox-meta{margin-top:12px;color:rgba(255,255,255,.72);font-size:10px}
+.lightbox-meta strong{color:white;font-weight:500}
+@media (max-width:420px){
+  .landing-actions{width:min(100%,370px)}
+  .landing-secondary{flex:1;justify-content:center}
+  .my-table-card{margin-left:0}
+}
