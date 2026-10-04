@@ -1,4 +1,3 @@
-import { compress } from 'compresso.js';
 import { PHOTO_BUCKET, getDeviceToken, publicPhotoUrl, sha256, supabase } from './supabase';
 
 export type Guest = { id:number; name:string; side:string|null; group_name:string|null; active:boolean };
@@ -70,6 +69,7 @@ export async function getMyPhotos() {
 }
 
 async function preparePhoto(file: File) {
+  const { compress } = await import('compresso.js');
   const result = await compress(file, {
     quality: 0.9,
     maxWidth: 4096,
