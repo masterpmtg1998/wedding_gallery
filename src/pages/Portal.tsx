@@ -66,7 +66,7 @@ export default function Portal(){
       const target=inviteEmail.trim().toLowerCase();
       await inviteWeddingMember(wedding.id,target);
       setInviteEmail('');
-      setMessage('Convite de co-gestão criado.');
+      setMessage('Convite enviado por email.');
       setTeam(await getWeddingTeam(wedding.id));
     }catch(e:any){setMessage(e.message||'Não foi possível criar o convite.')}
     finally{setInviting(false)}
@@ -129,7 +129,7 @@ export default function Portal(){
     <section className="portal-card portal-invite">
       <div className="portal-section-title"><div><span>Equipa do casamento</span><h2>Noivos e co-gestores</h2><p>Convida a tua noiva ou outra pessoa para gerir contigo este casamento. Isto é separado da lista de convidados.</p></div></div>
       <form onSubmit={invite}><input className="search" type="email" required placeholder="Email da pessoa a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit" disabled={inviting}>{inviting?'A convidar…':'Convidar co-gestor'}</button></form>
-      <div className="team-list">{team.map((m:any)=><div className="team-row" key={m.kind+'-'+m.email}><div><strong>{m.email}</strong><span>{m.role==='owner'?'Proprietário':m.role==='editor'?'Co-gestor':'Leitura'} · {m.status==='pending'?'Convite pendente':'Ativo'}</span></div>{m.status==='pending'&&<button type="button" onClick={async()=>{await cancelWeddingInvitation(wedding.id,m.email);setTeam(await getWeddingTeam(wedding.id));setMessage('Convite cancelado.')}}>Cancelar</button>}</div>)}</div>
+      <div className="team-list">{team.map((m:any)=><div className="team-row" key={m.kind+'-'+m.email}><div><strong>{m.email}</strong><span>{m.role==='owner'?'Proprietário':m.role==='editor'?'Co-gestor':'Leitura'} · {m.status==='pending'?'Convite pendente':'Ativo'}</span></div>{m.status==='pending'&&<div className="team-actions"><button type="button" onClick={async()=>{await inviteWeddingMember(wedding.id,m.email,m.role);setMessage('Convite reenviado por email.')}}>Reenviar</button><button type="button" onClick={async()=>{await cancelWeddingInvitation(wedding.id,m.email);setTeam(await getWeddingTeam(wedding.id));setMessage('Convite cancelado.')}}>Cancelar</button></div>}</div>)}</div>
 
     </section>
     <section className="portal-card">
