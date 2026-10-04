@@ -572,3 +572,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
 .route-loading{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);color:var(--muted)}
 .route-loading-mark{width:58px;height:58px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;font-family:'Fraunces',serif;font-size:20px;color:var(--green);background:rgba(255,253,249,.72)}
 .route-loading span{font-size:10px;text-transform:uppercase;letter-spacing:.14em}
+
+.guest-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.guest-label strong{font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.guest-label small{font-size:9px;color:var(--muted);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
