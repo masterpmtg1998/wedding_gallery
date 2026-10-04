@@ -1,34 +1,25 @@
 import type { ReactNode } from 'react';
 import { ArrowLeft, Images, MapPin, Upload } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
+import { weddingPath } from '../lib/wedding';
 
 export function BottomNav() {
   const [location] = useLocation();
   const tabs = [
-    { href:'/album', label:'Álbum', icon:Images },
-    { href:'/adicionar', label:'Adicionar', icon:Upload, primary:true },
-    { href:'/mesas', label:'Mesas', icon:MapPin },
+    { href:weddingPath('/album'), label:'Álbum', icon:Images },
+    { href:weddingPath('/adicionar'), label:'Adicionar', icon:Upload, primary:true },
+    { href:weddingPath('/mesas'), label:'Mesas', icon:MapPin },
   ];
   return <nav className="bottom-nav"><div className="bottom-nav-inner">
-    {tabs.map(tab=>{
-      const Icon=tab.icon;
-      return <Link key={tab.href} href={tab.href} className={'nav-tab '+(location===tab.href?'active ':'')+(tab.primary?'primary':'')}>
-        <span className="nav-icon"><Icon size={21}/></span><span>{tab.label}</span>
-      </Link>
-    })}
+    {tabs.map(tab=>{const Icon=tab.icon;return <Link key={tab.href} href={tab.href} className={'nav-tab '+(location===tab.href?'active ':'')+(tab.primary?'primary':'')}>
+      <span className="nav-icon"><Icon size={21}/></span><span>{tab.label}</span>
+    </Link>})}
   </div></nav>;
 }
-
 export function Page({title,children,showNav=true}:{title:string;children:ReactNode;showNav?:boolean}) {
   const [,nav]=useLocation();
-  return <>
-    <main className={'page '+(showNav?'with-nav':'')}>
-      <header className="pagehead">
-        <button className="back" onClick={()=>nav('/')} aria-label="Voltar"><ArrowLeft size={20}/></button>
-        <div className="page-title-wrap"><div className="eyebrow">Pedro & Tânia · 04.09.2027</div><h1>{title}</h1></div>
-      </header>
-      {children}
-    </main>
-    {showNav&&<BottomNav/>}
-  </>;
+  return <><main className={'page '+(showNav?'with-nav':'')}><header className="pagehead">
+    <button className="back" onClick={()=>nav(weddingPath('/'))} aria-label="Voltar"><ArrowLeft size={20}/></button>
+    <div className="page-title-wrap"><div className="eyebrow">O nosso casamento</div><h1>{title}</h1></div>
+  </header>{children}</main>{showNav&&<BottomNav/>}</>;
 }
