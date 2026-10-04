@@ -111,3 +111,23 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
   return photo.id as string;
 }
 
+
+
+export async function recordPhotoView(photoId:string) {
+  const viewerHash = await sha256(getDeviceToken());
+  const {error} = await supabase.rpc('record_photo_view',{
+    p_photo_id:photoId,
+    p_viewer_hash:viewerHash,
+  });
+  if (error) throw error;
+}
+
+export async function getTrendingPhotos(limit=10) {
+  const {data,error} = await supabase.rpc('get_trending_photos',{p_limit:limit});
+  if (error) throw error;
+  return (data ?? []).map((row:any)=>({
+    id:row.id as string,
+    url:publicPhotoUrl(row.storage_path),
+    view_count:Number(row.view_count ?? 0),
+  }));
+}
