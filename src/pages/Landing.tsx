@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { getGuestId } from '../lib/guest';
 
 const slides=['/couple/1.svg','/couple/2.svg','/couple/3.svg','/couple/4.svg'];
 
@@ -12,7 +11,7 @@ export default function Landing(){
     const t=setInterval(()=>setSlide(v=>(v+1)%slides.length),3200);
     return()=>clearInterval(t);
   },[]);
-  const publish=()=>nav(getGuestId()?'/adicionar':'/identificar?next=/adicionar');
+  const publish=()=>nav('/identificar?next=/adicionar');
   return <main className="landing">
     <div className="landing-slides">
       {slides.map((src,i)=><img key={src} src={src} className={'landing-slide '+(slide===i?'show':'')} alt="Pedro e Tânia"/>)}
