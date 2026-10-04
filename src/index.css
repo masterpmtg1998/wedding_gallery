@@ -154,3 +154,8 @@ img { display: block; max-width: 100%; }
 .review-dots button{width:7px;height:7px;flex:0 0 auto;border:0;border-radius:50%;padding:0;background:#c8c0b3}
 .review-dots button.active{background:var(--green);transform:scale(1.2)}
 .add-more{margin:0 auto}
+
+.bottom-nav-inner.two-tabs{grid-template-columns:1fr 1fr;max-width:360px}
+.album-card{min-width:0}
+.photo-meta{padding:6px 2px 2px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo-meta strong{color:var(--ink);font-weight:500}
