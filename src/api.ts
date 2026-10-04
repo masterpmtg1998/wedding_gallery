@@ -53,33 +53,6 @@ export async function getGallery() {
   })) as Photo[];
 }
 
-export async function getMyPhotos() {
-  const token = getDeviceToken();
-  const {data,error} = await supabase.rpc('get_my_photos',{p_session_token:token});
-  if (error) throw error;
-  const rows = data ?? [];
-  const people = await getPeopleFor(rows.map((r:any)=>r.id));
-  return rows.map((r:any) => ({
-    ...r,
-    moment_id: Number(r.moment_id),
-    uploader_guest_id: r.uploader_guest_id == null ? null : Number(r.uploader_guest_id),
-    url: publicPhotoUrl(r.storage_path),
-    person_ids: people.get(r.id) ?? [],
-  })) as Photo[];
-}
-
-async function preparePhoto(file: File) {
-  const { compress } = await import('compresso.js');
-  const result = await compress(file, {
-    quality: 0.9,
-    maxWidth: 4096,
-    maxHeight: 4096,
-    maxSizeMB: 4,
-    format: 'jpeg',
-  });
-  return result.file;
-}
-
 export async function uploadPhoto(file:File, momentId:number, guestId:number|null, personIds:number[]) {
   const token = getDeviceToken();
   const sessionHash = await sha256(token);
@@ -116,9 +89,3 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
   return photo.id as string;
 }
 
-export async function deleteMyPhoto(photoId:string) {
-  const token = getDeviceToken();
-  const {data,error} = await supabase.rpc('soft_delete_own_photo',{p_photo_id:photoId,p_session_token:token});
-  if (error) throw error;
-  if (!data) throw new Error('Não foi possível apagar esta fotografia.');
-}
