@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft, Images, Upload } from 'lucide-react';
+import { ArrowLeft, Images, MapPin, Upload } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 
 export function BottomNav() {
@@ -7,8 +7,9 @@ export function BottomNav() {
   const tabs = [
     { href:'/album', label:'Álbum', icon:Images },
     { href:'/adicionar', label:'Adicionar', icon:Upload, primary:true },
+    { href:'/mesas', label:'Mesas', icon:MapPin },
   ];
-  return <nav className="bottom-nav"><div className="bottom-nav-inner two-tabs">
+  return <nav className="bottom-nav"><div className="bottom-nav-inner">
     {tabs.map(tab=>{
       const Icon=tab.icon;
       return <Link key={tab.href} href={tab.href} className={'nav-tab '+(location===tab.href?'active ':'')+(tab.primary?'primary':'')}>
