@@ -3,6 +3,7 @@ import { Heart, Images, X } from 'lucide-react';
 import { Page } from '../components/navigation';
 import { getGalleryPage, getLoveStats, togglePhotoLove, type Photo } from '../api';
 import { useCatalog } from '../hooks/useCatalog';
+import { getWeddingSlug } from '../lib/wedding';
 
 const PAGE_SIZE=60;
 const LOVE_KEY='wedding_loved_photos';
@@ -16,6 +17,7 @@ function persistLoved(set:Set<string>){
 }
 
 export default function Album(){
+  const slug=getWeddingSlug();
   const {guests,moments}=useCatalog();
   const [photos,setPhotos]=useState<Photo[]>([]);
   const [total,setTotal]=useState(0);
@@ -33,10 +35,10 @@ export default function Album(){
     setError('');
     try{
       const offset=reset?0:photos.length;
-      const result=await getGalleryPage(moment,person,offset,PAGE_SIZE);
+      const result=await getGalleryPage(moment,person,offset,PAGE_SIZE,slug);
       setTotal(result.total);
       setPhotos(v=>reset?result.photos:[...v,...result.photos]);
-      const counts=await getLoveStats(result.photos.map(p=>p.id));
+      const counts=await getLoveStats(result.photos.map(p=>p.id),slug);
       setLoveCounts(v=>{
         const next=reset?new Map<string,number>():new Map(v);
         counts.forEach((count,id)=>next.set(id,count));
@@ -54,7 +56,7 @@ export default function Album(){
 
   const toggleLove=async(photoId:string)=>{
     try{
-      const nowLoved=await togglePhotoLove(photoId);
+      const nowLoved=await togglePhotoLove(photoId,slug);
       setLoved(prev=>{
         const next=new Set(prev);
         nowLoved?next.add(photoId):next.delete(photoId);
