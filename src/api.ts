@@ -115,19 +115,37 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
 
 export async function recordPhotoView(photoId:string) {
   const viewerHash = await sha256(getDeviceToken());
-  const {error} = await supabase.rpc('record_photo_view',{
-    p_photo_id:photoId,
-    p_viewer_hash:viewerHash,
+  const {error} = await supabase.from('photo_views').insert({
+    photo_id:photoId,
+    viewer_hash:viewerHash,
   });
-  if (error) throw error;
+  if (error && error.code !== '23505') throw error;
 }
 
 export async function getTrendingPhotos(limit=10) {
-  const {data,error} = await supabase.rpc('get_trending_photos',{p_limit:limit});
-  if (error) throw error;
-  return (data ?? []).map((row:any)=>({
-    id:row.id as string,
-    url:publicPhotoUrl(row.storage_path),
-    view_count:Number(row.view_count ?? 0),
-  }));
+  const {data:stats,error:statsError} = await supabase
+    .from('photo_stats')
+    .select('photo_id,view_count,last_viewed_at')
+    .order('view_count',{ascending:false})
+    .order('last_viewed_at',{ascending:false})
+    .limit(Math.min(Math.max(limit,1),10));
+  if (statsError) throw statsError;
+  if (!stats?.length) return [];
+
+  const ids=stats.map(row=>row.photo_id);
+  const {data:photos,error:photosError} = await supabase
+    .from('photos')
+    .select('id,storage_path')
+    .in('id',ids);
+  if (photosError) throw photosError;
+
+  const byId=new Map((photos??[]).map(row=>[row.id,row.storage_path]));
+  return stats.flatMap(row=>{
+    const path=byId.get(row.photo_id);
+    return path ? [{
+      id:row.photo_id as string,
+      url:publicPhotoUrl(path),
+      view_count:Number(row.view_count ?? 0),
+    }] : [];
+  });
 }
