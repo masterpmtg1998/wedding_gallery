@@ -17,11 +17,13 @@ export type Photo = {
   person_ids:number[];
 };
 
-export async function getCatalog() {
+export const DEFAULT_WEDDING_SLUG='pedro-tania';
+
+export async function getCatalog(slug=DEFAULT_WEDDING_SLUG) {
   const [{data: guests, error: ge}, {data: moments, error: me}, {data: tables, error: te}] = await Promise.all([
-    supabase.from('guests').select('id,name,side,group_name,entry_group,table_id,active').eq('active', true).order('name'),
-    supabase.from('moments').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
-    supabase.from('wedding_tables').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
+    supabase.rpc('get_public_guests',{p_slug:slug}),
+    supabase.rpc('get_public_moments',{p_slug:slug}),
+    supabase.rpc('get_public_tables',{p_slug:slug}),
   ]);
   if (ge) throw ge;
   if (me) throw me;
@@ -33,13 +35,8 @@ export async function getCatalog() {
   };
 }
 
-export async function getGalleryPage(momentId:number|null, personId:number|null, offset=0, limit=60) {
-  const {data,error} = await supabase.rpc('get_gallery_page',{
-    p_moment_id:momentId,
-    p_person_id:personId,
-    p_offset:offset,
-    p_limit:limit,
-  });
+export async function getGalleryPage(momentId:number|null, personId:number|null, offset=0, limit=60,slug=DEFAULT_WEDDING_SLUG) {
+  const {data,error} = await supabase.rpc('get_public_photos',{p_slug:slug,p_moment_id:momentId,p_person_id:personId,p_offset:offset,p_limit:limit});
   if (error) throw error;
   const rows = data ?? [];
   const total = rows.length ? Number(rows[0].total_count ?? rows.length) : 0;
@@ -71,12 +68,15 @@ async function preparePhoto(file: File) {
   return result.file;
 }
 
-export async function uploadPhoto(file:File, momentId:number, guestId:number|null, personIds:number[]) {
+export async function uploadPhoto(file:File, momentId:number, guestId:number|null, personIds:number[],slug=DEFAULT_WEDDING_SLUG) {
   const token = getDeviceToken();
   const sessionHash = await sha256(token);
   const id = crypto.randomUUID();
   const prepared = await preparePhoto(file);
-  const path = `uploads/${sessionHash.slice(0,16)}/${id}.jpg`;
+  if(guestId==null) throw new Error('Convidado obrigatório');
+  const {data:weddingId,error:contextError}=await supabase.rpc('get_public_upload_context',{p_slug:slug});
+  if(contextError||!weddingId) throw contextError||new Error('Casamento inválido');
+  const path = `${weddingId}/uploads/${sessionHash.slice(0,16)}/${id}.jpg`;
 
   const {error: uploadError} = await supabase.storage.from(PHOTO_BUCKET).upload(path,prepared,{
     cacheControl:'3600',
@@ -85,37 +85,33 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
   });
   if (uploadError) throw uploadError;
 
-  const {data: photo,error: photoError} = await supabase.from('photos').insert({
-    id,
-    storage_path:path,
-    moment_id:momentId,
-    uploader_guest_id:guestId,
-    uploader_session_hash:sessionHash,
-    original_name:file.name.slice(0,240),
-    file_size:prepared.size,
-  }).select('id').single();
+  const {data: photo,error: photoError} = await supabase.rpc('create_public_photo',{
+    p_slug:slug,p_photo_id:id,p_storage_path:path,p_moment_id:momentId,p_guest_id:guestId,
+    p_session_hash:sessionHash,p_original_name:file.name,p_width:1,p_height:1,p_file_size:prepared.size,
+  });
 
   if (photoError) {
-    await supabase.storage.from(PHOTO_BUCKET).remove([path]);
     throw photoError;
   }
 
+
   if (personIds.length) {
     const {error: peopleError} = await supabase.rpc('set_photo_people',{
-      p_photo_id:photo.id,
+      p_photo_id:photo,
       p_guest_ids:personIds,
       p_session_token:token,
     });
     if (peopleError) throw peopleError;
   }
-  return photo.id as string;
+  return photo as string;
 }
 
 
 
-export async function togglePhotoLove(photoId:string) {
+export async function togglePhotoLove(photoId:string,slug=DEFAULT_WEDDING_SLUG) {
   const voterHash = await sha256(getDeviceToken());
   const {data,error} = await supabase.rpc('toggle_photo_love',{
+    p_slug:slug,
     p_photo_id:photoId,
     p_voter_hash:voterHash,
   });
@@ -123,49 +119,24 @@ export async function togglePhotoLove(photoId:string) {
   return Boolean(data);
 }
 
-export async function getLoveStats(photoIds:string[]) {
+export async function getLoveStats(photoIds:string[],slug=DEFAULT_WEDDING_SLUG) {
   if(!photoIds.length) return new Map<string,number>();
-  const {data,error} = await supabase
-    .from('photo_love_stats')
-    .select('photo_id,love_count')
-    .in('photo_id',photoIds);
+  const {data,error}=await supabase.rpc('get_public_love_stats',{p_slug:slug,p_photo_ids:photoIds});
   if(error) throw error;
   return new Map((data??[]).map((row:any)=>[row.photo_id,Number(row.love_count??0)]));
 }
 
-export async function getTrendingPhotos(limit=10) {
-  const {data:stats,error:statsError} = await supabase
-    .from('photo_love_stats')
-    .select('photo_id,love_count,last_loved_at')
-    .gt('love_count',0)
-    .order('love_count',{ascending:false})
-    .order('last_loved_at',{ascending:false})
-    .limit(Math.min(Math.max(limit,1),10));
-  if (statsError) throw statsError;
-  if (!stats?.length) return [];
+export async function getTrendingPhotos(limit=10,slug=DEFAULT_WEDDING_SLUG) {
+  const {data,error}=await supabase.rpc('get_public_trending_photos',{p_slug:slug,p_limit:limit});
+  if(error) throw error;
+  return (data??[]).map((row:any)=>({id:row.id as string,url:publicPhotoUrl(row.storage_path),love_count:Number(row.love_count??0)}));
 
-  const ids=stats.map((row:any)=>row.photo_id);
-  const {data:photos,error:photosError} = await supabase
-    .from('photos')
-    .select('id,storage_path')
-    .in('id',ids);
-  if (photosError) throw photosError;
-
-  const byId=new Map((photos??[]).map((row:any)=>[row.id,row.storage_path]));
-  return stats.flatMap((row:any)=>{
-    const path=byId.get(row.photo_id);
-    return path ? [{
-      id:row.photo_id as string,
-      url:publicPhotoUrl(path),
-      love_count:Number(row.love_count ?? 0),
-    }] : [];
-  });
 }
 
 
 export type LandingMedia = { slot:number; storage_path:string; focal_x:number; focal_y:number; url:string };
 
-export async function getLandingMedia(slug='pedro-tania') {
+export async function getLandingMedia(slug=DEFAULT_WEDDING_SLUG) {
   const {data,error}=await supabase.rpc('get_public_landing_media',{p_slug:slug});
   if(error) throw error;
   return (data??[]).map((row:any)=>({
