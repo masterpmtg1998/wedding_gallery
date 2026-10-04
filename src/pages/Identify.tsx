@@ -20,7 +20,7 @@ export default function Identify(){
     {loading&&<div className="empty">A carregar convidados…</div>}
     {error&&<p className="notice">{error}</p>}
     {!loading&&<div className="list">{list.map(g=><button className="guest" key={g.id} onClick={()=>{setGuestId(g.id);nav(next)}}>
-      <span>{g.name}</span>{getGuestId()===g.id&&<Check size={17}/>}
+      <span className="guest-label"><strong>{g.name}</strong>{g.group_name&&<small>{g.group_name}</small>}</span>{getGuestId()===g.id&&<Check size={17}/>} 
     </button>)}</div>}
     <p className="privacy-note">O nome serve apenas para identificar quem publicou cada fotografia.</p>
   </Page>;
