@@ -80,6 +80,7 @@ export default function Landing(){
         <span>Olá, {guestName}</span>
         <span>·</span>
         <strong>{tableName||'Mesa por definir'}</strong>
+        <button onClick={()=>nav('/identificar?next=/')}>trocar</button>
       </div>}
 
       <p>Vive, fotografa e partilha connosco os momentos que só tu viste.</p>
