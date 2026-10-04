@@ -564,3 +564,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
   .landing-slide{transition:none;transform:none!important;}
   .slide-dots button{transition:none;}
 }
+
+.load-more-wrap{display:flex;justify-content:center;padding:24px 0 8px}
+.load-more{min-height:46px;padding:0 22px;border:1px solid rgba(126,111,88,.22);border-radius:999px;background:rgba(255,253,249,.86);color:var(--ink);font-size:12px}
+.load-more:disabled{opacity:.55;cursor:default}
