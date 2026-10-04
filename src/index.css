@@ -607,3 +607,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
   .landing-secondary{flex:1;justify-content:center}
   .my-table-card{margin-left:0}
 }
+
+.welcome-chip button{border:0;background:transparent;color:rgba(255,250,242,.62);font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:0 0 0 2px;text-decoration:underline;text-underline-offset:3px}
