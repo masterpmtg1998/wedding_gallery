@@ -1,6 +1,6 @@
 import { PHOTO_BUCKET, getDeviceToken, publicPhotoUrl, sha256, supabase } from './supabase';
 
-export type Guest = { id:number; name:string; side:string|null; group_name:string|null; table_id:number|null; active:boolean };
+export type Guest = { id:number; name:string; side:string|null; group_name:string|null; entry_group:'familia_noivo'|'familia_noiva'|'amigos'|null; table_id:number|null; active:boolean };
 export type WeddingTable = { id:number; name:string; sort_order:number; active:boolean };
 export type Moment = { id:number; name:string; sort_order:number; active:boolean };
 export type Photo = {
@@ -19,7 +19,7 @@ export type Photo = {
 
 export async function getCatalog() {
   const [{data: guests, error: ge}, {data: moments, error: me}, {data: tables, error: te}] = await Promise.all([
-    supabase.from('guests').select('id,name,side,group_name,table_id,active').eq('active', true).order('name'),
+    supabase.from('guests').select('id,name,side,group_name,entry_group,table_id,active').eq('active', true).order('name'),
     supabase.from('moments').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
     supabase.from('wedding_tables').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
   ]);
@@ -113,39 +113,51 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
 
 
 
-export async function recordPhotoView(photoId:string) {
-  const viewerHash = await sha256(getDeviceToken());
-  const {error} = await supabase.from('photo_views').insert({
-    photo_id:photoId,
-    viewer_hash:viewerHash,
+export async function togglePhotoLove(photoId:string) {
+  const voterHash = await sha256(getDeviceToken());
+  const {data,error} = await supabase.rpc('toggle_photo_love',{
+    p_photo_id:photoId,
+    p_voter_hash:voterHash,
   });
-  if (error && error.code !== '23505') throw error;
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function getLoveStats(photoIds:string[]) {
+  if(!photoIds.length) return new Map<string,number>();
+  const {data,error} = await supabase
+    .from('photo_love_stats')
+    .select('photo_id,love_count')
+    .in('photo_id',photoIds);
+  if(error) throw error;
+  return new Map((data??[]).map((row:any)=>[row.photo_id,Number(row.love_count??0)]));
 }
 
 export async function getTrendingPhotos(limit=10) {
   const {data:stats,error:statsError} = await supabase
-    .from('photo_stats')
-    .select('photo_id,view_count,last_viewed_at')
-    .order('view_count',{ascending:false})
-    .order('last_viewed_at',{ascending:false})
+    .from('photo_love_stats')
+    .select('photo_id,love_count,last_loved_at')
+    .gt('love_count',0)
+    .order('love_count',{ascending:false})
+    .order('last_loved_at',{ascending:false})
     .limit(Math.min(Math.max(limit,1),10));
   if (statsError) throw statsError;
   if (!stats?.length) return [];
 
-  const ids=stats.map(row=>row.photo_id);
+  const ids=stats.map((row:any)=>row.photo_id);
   const {data:photos,error:photosError} = await supabase
     .from('photos')
     .select('id,storage_path')
     .in('id',ids);
   if (photosError) throw photosError;
 
-  const byId=new Map((photos??[]).map(row=>[row.id,row.storage_path]));
-  return stats.flatMap(row=>{
+  const byId=new Map((photos??[]).map((row:any)=>[row.id,row.storage_path]));
+  return stats.flatMap((row:any)=>{
     const path=byId.get(row.photo_id);
     return path ? [{
       id:row.photo_id as string,
       url:publicPhotoUrl(path),
-      view_count:Number(row.view_count ?? 0),
+      love_count:Number(row.love_count ?? 0),
     }] : [];
   });
 }
