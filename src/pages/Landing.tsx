@@ -19,7 +19,7 @@ export default function Landing(){
       <div className="landing-overlay"/>
     </div>
     <div className="landing-content">
-      <div className="landing-date">04 · 07 · 2027</div>
+      <div className="landing-date">04 · 09 · 2027</div>
       <h1>Pedro <span>&</span> Tânia</h1>
       <p>Ajuda-nos a guardar o nosso dia pelos teus olhos.</p>
       <button className="landing-cta" onClick={publish}><Camera size={20}/>Publicar Fotografias</button>
