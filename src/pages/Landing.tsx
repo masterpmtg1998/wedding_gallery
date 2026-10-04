@@ -40,7 +40,7 @@ export default function Landing(){
         const table=tables.find(t=>t.id===guest.table_id);
         setTableName(table?.name||'');
 
-        const popular=trending.map(p=>p.url);
+        const popular=trending.map((p:{url:string})=>p.url);
         if(popular.length>=4) setSlides(popular);
         else if(popular.length) setSlides([...popular,...fallbackSlides].slice(0,4));
       }catch{
