@@ -40,7 +40,7 @@ async function getPeopleFor(photoIds:string[]) {
 }
 
 export async function getGallery() {
-  const {data,error} = await supabase.from('photos').select('id,storage_path,moment_id,uploader_guest_id,original_name,width,height,file_size,created_at').is('deleted_at', null).order('created_at',{ascending:false});
+  const {data,error} = await supabase.from('photos').select('id,storage_path,moment_id,uploader_guest_id,original_name,width,height,file_size,created_at').order('created_at',{ascending:false});
   if (error) throw error;
   const rows = data ?? [];
   const people = await getPeopleFor(rows.map(r=>r.id));
