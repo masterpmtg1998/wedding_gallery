@@ -7,6 +7,7 @@ const Identify = lazy(()=>import('./pages/Identify'));
 const AddPhotos = lazy(()=>import('./pages/AddPhotos'));
 const Album = lazy(()=>import('./pages/Album'));
 const Tables = lazy(()=>import('./pages/Tables'));
+const Portal = lazy(()=>import('./pages/Portal'));
 
 function Loading(){
   return <main className="route-loading"><div className="route-loading-mark">P&T</div><span>A preparar…</span></main>;
@@ -31,6 +32,7 @@ export default function App(){
     <Route path="/adicionar"><GuestGate next="/adicionar"><Suspense fallback={<Loading/>}><AddPhotos/></Suspense></GuestGate></Route>
     <Route path="/album"><GuestGate next="/album"><Suspense fallback={<Loading/>}><Album/></Suspense></GuestGate></Route>
     <Route path="/mesas"><GuestGate next="/mesas"><Suspense fallback={<Loading/>}><Tables/></Suspense></GuestGate></Route>
+    <Route path="/portal"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
     <Route><Landing/></Route>
   </Switch>;
 }
