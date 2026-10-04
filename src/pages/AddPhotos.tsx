@@ -184,7 +184,7 @@ export default function AddPhotos(){
         {showPeople&&<div className="picker">
           {guests.map(g=><label className="picker-row" key={g.id}>
             <input type="checkbox" checked={photo.personIds.includes(g.id)} onChange={()=>togglePerson(g.id)}/>
-            <span>{g.name}</span>
+            <span className="guest-label"><strong>{g.name}</strong>{g.group_name&&<small>{g.group_name}</small>}</span>
           </label>)}
         </div>}
       </section>
