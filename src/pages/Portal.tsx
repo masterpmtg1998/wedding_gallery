@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ImagePlus, LogOut, Save, Upload } from 'lucide-react';
-import { getManagedLandingMedia, getMyWedding, updateLandingFocal, uploadLandingMedia } from '../api';
+import { createWeddingWorkspace, getManagedLandingMedia, getMyWedding, getMyWeddings, inviteWeddingMember, updateLandingFocal, uploadLandingMedia } from '../api';
 import { supabase } from '../supabase';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
@@ -14,6 +14,10 @@ export default function Portal(){
   const [wedding,setWedding]=useState<any>(null);
   const [signedIn,setSignedIn]=useState(false);
   const [items,setItems]=useState<Item[]>([]);
+  const [workspaces,setWorkspaces]=useState<any[]>([]);
+  const [coupleNames,setCoupleNames]=useState('');
+  const [weddingDate,setWeddingDate]=useState('');
+  const [inviteEmail,setInviteEmail]=useState('');
   const [message,setMessage]=useState('');
 
   async function load(){
@@ -21,7 +25,9 @@ export default function Portal(){
     try{
       const {data:{session}}=await supabase.auth.getSession();
       setSignedIn(Boolean(session));
-      const w=session?await getMyWedding():null;
+      const ws=session?await getMyWeddings():[];
+      setWorkspaces(ws);
+      const w=ws[0]??null;
       setWedding(w);
       if(w)setItems(await getManagedLandingMedia(w.id) as Item[]);
       else setItems([]);
@@ -46,6 +52,16 @@ export default function Portal(){
     if(error)setMessage('Email ou palavra-passe incorretos.');
   }
 
+  async function createWorkspace(e:React.FormEvent){
+    e.preventDefault();setMessage('');
+    try{await createWeddingWorkspace(coupleNames,weddingDate);await load();}
+    catch(e:any){setMessage(e.message||'Não foi possível criar o casamento.')}
+  }
+  async function invite(e:React.FormEvent){
+    e.preventDefault();if(!wedding)return;
+    try{await inviteWeddingMember(wedding.id,inviteEmail);setInviteEmail('');setMessage('Convite preparado. Quando essa pessoa criar/entrar na conta com este email, terá acesso ao casamento.');}
+    catch(e:any){setMessage(e.message||'Não foi possível criar o convite.')}
+  }
   async function replace(slot:number,file?:File){
     if(!file||!wedding)return;
     setMessage('A carregar original…');
@@ -77,14 +93,24 @@ export default function Portal(){
   </section></main>;
 
   if(!wedding)return <main className="portal-shell"><section className="portal-card portal-login">
-    <div className="landing-kicker">Portal dos Noivos</div><h1>A tua conta está pronta</h1>
-    <p>Ainda não tens nenhum casamento associado a esta conta. A criação de um novo casamento e os convites de equipa entram no próximo passo do onboarding comercial.</p>
-    <button className="primary" onClick={()=>supabase.auth.signOut()}>Sair</button>
+    <div className="landing-kicker">Bem-vindo</div><h1>Cria o teu casamento</h1>
+    <p>Este será o teu workspace. Depois podes convidar a outra pessoa do casal ou alguém da organização.</p>
+    <form onSubmit={createWorkspace}>
+      <input className="search" required placeholder="Nomes do casal · ex. Pedro & Tânia" value={coupleNames} onChange={e=>setCoupleNames(e.target.value)}/>
+      <input className="search" type="date" required value={weddingDate} onChange={e=>setWeddingDate(e.target.value)}/>
+      <button className="primary" type="submit">Criar casamento</button>
+    </form>
+    {message&&<p className="notice">{message}</p>}
+    <div className="auth-links"><button onClick={()=>supabase.auth.signOut()}>Sair</button></div>
   </section></main>;
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Portal dos Noivos</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
     <nav className="portal-tabs"><button className="active">Personalização</button><button disabled>Convidados</button><button disabled>Mesas</button><button disabled>Fotografias</button></nav>
+    <section className="portal-card portal-invite">
+      <div className="portal-section-title"><div><span>Equipa</span><h2>Partilhar gestão</h2><p>Convida a outra pessoa do casal ou um organizador. O acesso fica ligado ao workspace.</p></div></div>
+      <form onSubmit={invite}><input className="search" type="email" required placeholder="Email a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit">Convidar</button></form>
+    </section>
     <section className="portal-card">
       <div className="portal-section-title"><div><span>Landing page</span><h2>Fotos de abertura</h2><p>Carrega os originais. Depois ajusta o ponto principal da imagem sem alterar o ficheiro.</p></div><ImagePlus size={25}/></div>
       <div className="branding-grid">{[1,2,3,4].map(slot=>{
