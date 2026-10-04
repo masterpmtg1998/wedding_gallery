@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ImagePlus, LogOut, Save, Upload } from 'lucide-react';
+import { Copy, ExternalLink, ImagePlus, LogOut, QrCode, Save, Upload } from 'lucide-react';
 import { createWeddingWorkspace, getManagedLandingMedia, getMyWedding, getMyWeddings, inviteWeddingMember, updateLandingFocal, uploadLandingMedia } from '../api';
 import { supabase } from '../supabase';
 
@@ -104,9 +104,19 @@ export default function Portal(){
     <div className="auth-links"><button onClick={()=>supabase.auth.signOut()}>Sair</button></div>
   </section></main>;
 
+  const publicUrl=window.location.origin+'/w/'+wedding.slug;
+
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Portal dos Noivos</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
-    <nav className="portal-tabs"><button className="active">Personalização</button><button disabled>Convidados</button><button disabled>Mesas</button><button disabled>Fotografias</button></nav>
+    <nav className="portal-tabs"><button className="active">Dashboard</button><button>Site & QR</button><button>Personalização</button><button disabled>Convidados</button><button disabled>Mesas</button><button disabled>Fotografias</button></nav>
+    <section className="portal-card wedding-site-card">
+      <div className="portal-section-title"><div><span>Site do casamento</span><h2>Partilhar com os convidados</h2><p>Este endereço é exclusivo deste casamento. O QR Code e os materiais de impressão apontam sempre para aqui.</p></div><QrCode size={25}/></div>
+      <div className="wedding-url-row"><code>{publicUrl}</code><button onClick={()=>navigator.clipboard.writeText(publicUrl)}><Copy size={15}/>Copiar</button><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink size={15}/>Abrir site</a></div>
+      <div className="print-builder">
+        <div><strong>QR Code & impressão</strong><span>Prepara cartões e flyers para colocar nas mesas, bar ou zona de fotografias.</span></div>
+        <div className="print-options"><select className="search" defaultValue="A6"><option>A6</option><option>A5</option><option>10 × 15 cm</option><option>13 × 18 cm</option><option>Personalizado</option></select><select className="search" defaultValue="vertical"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select><button className="primary" type="button">Criar flyer</button></div>
+      </div>
+    </section>
     <section className="portal-card portal-invite">
       <div className="portal-section-title"><div><span>Equipa</span><h2>Partilhar gestão</h2><p>Convida a outra pessoa do casal ou um organizador. O acesso fica ligado ao workspace.</p></div></div>
       <form onSubmit={invite}><input className="search" type="email" required placeholder="Email a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit">Convidar</button></form>
