@@ -123,7 +123,7 @@ export async function getLoveStats(photoIds:string[],slug=DEFAULT_WEDDING_SLUG) 
   if(!photoIds.length) return new Map<string,number>();
   const {data,error}=await supabase.rpc('get_public_love_stats',{p_slug:slug,p_photo_ids:photoIds});
   if(error) throw error;
-  return new Map((data??[]).map((row:any)=>[row.photo_id,Number(row.love_count??0)]));
+  return new Map<string,number>((data??[]).map((row:any):[string,number]=>[String(row.photo_id),Number(row.love_count??0)]));
 }
 
 export async function getTrendingPhotos(limit=10,slug=DEFAULT_WEDDING_SLUG) {
