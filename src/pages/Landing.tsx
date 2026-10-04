@@ -3,12 +3,13 @@ import { Camera, Images, MapPin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { getGuestId } from '../lib/guest';
 
-const fallbackSlides=['/couple/1.svg','/couple/2.svg','/couple/3.svg','/couple/4.svg'];
+type Slide={url:string;focal_x:number;focal_y:number};
+const fallbackSlides:Slide[]=['/couple/1.svg','/couple/2.svg','/couple/3.svg','/couple/4.svg'].map(url=>({url,focal_x:50,focal_y:50}));
 
 export default function Landing(){
   const [,nav]=useLocation();
   const [slide,setSlide]=useState(0);
-  const [slides,setSlides]=useState(fallbackSlides);
+  const [slides,setSlides]=useState<Slide[]>(fallbackSlides);
   const [guestName,setGuestName]=useState('');
   const [tableName,setTableName]=useState('');
 
@@ -22,10 +23,11 @@ export default function Landing(){
     let cancelled=false;
     (async()=>{
       try{
-        const {getCatalog,getTrendingPhotos}=await import('../api');
-        const [{guests,tables},trending]=await Promise.all([
+        const {getCatalog,getTrendingPhotos,getLandingMedia}=await import('../api');
+        const [{guests,tables},trending,branding]=await Promise.all([
           getCatalog(),
           getTrendingPhotos(10),
+          getLandingMedia(),
         ]);
         if(cancelled)return;
 
@@ -40,9 +42,13 @@ export default function Landing(){
         const table=tables.find(t=>t.id===guest.table_id);
         setTableName(table?.name||'');
 
-        const popular=trending.map((p:{url:string})=>p.url);
-        if(popular.length>=4) setSlides(popular);
-        else if(popular.length) setSlides([...popular,...fallbackSlides].slice(0,4));
+        if(branding.length){
+          setSlides(branding.map((m:any)=>({url:m.url,focal_x:m.focal_x,focal_y:m.focal_y})));
+        } else {
+          const popular=trending.map((p:{url:string})=>({url:p.url,focal_x:50,focal_y:50}));
+          if(popular.length>=4) setSlides(popular);
+          else if(popular.length) setSlides([...popular,...fallbackSlides].slice(0,4));
+        }
       }catch{
         // A landing continua utilizável com os placeholders.
       }
@@ -62,7 +68,7 @@ export default function Landing(){
 
   return <main className="landing">
     <div className="landing-slides">
-      {slides.map((src,i)=><img key={src} src={src} className={'landing-slide '+(currentSlide===i?'show':'')} alt="Memórias de Pedro e Tânia"/>)}
+      {slides.map((item,i)=><img key={item.url} src={item.url} style={{objectPosition:`${item.focal_x}% ${item.focal_y}%`}} className={'landing-slide '+(currentSlide===i?'show':'')} alt="Memórias de Pedro e Tânia"/>)}
       <div className="landing-overlay"/>
     </div>
 
