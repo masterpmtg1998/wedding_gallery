@@ -206,8 +206,9 @@ export async function createWeddingWorkspace(coupleNames:string,weddingDate:stri
   if(error)throw error;return data as string;
 }
 export async function inviteWeddingMember(weddingId:string,email:string,role='editor'){
-  const {error}=await supabase.rpc('invite_wedding_member',{p_wedding_id:weddingId,p_email:email.trim().toLowerCase(),p_role:role});
+  const {data,error}=await supabase.functions.invoke('invite-wedding-manager',{body:{weddingId,email:email.trim().toLowerCase(),role}});
   if(error)throw error;
+  if(data?.error)throw new Error(data.error);
 }
 export async function getWeddingTeam(weddingId:string){
   const {data,error}=await supabase.rpc('get_wedding_team',{p_wedding_id:weddingId});
