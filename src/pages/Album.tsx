@@ -49,7 +49,7 @@ export default function Album(){
       </div>
       <select className="search" value={person??''} onChange={e=>setPerson(e.target.value?Number(e.target.value):null)}>
         <option value="">Todas as pessoas</option>
-        {guests.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
+        {guests.map(g=><option key={g.id} value={g.id}>{g.name}{g.group_name?' — '+g.group_name:''}</option>)}
       </select>
     </div>
 
