@@ -1,6 +1,7 @@
 import { PHOTO_BUCKET, getDeviceToken, publicPhotoUrl, sha256, supabase } from './supabase';
 
-export type Guest = { id:number; name:string; side:string|null; group_name:string|null; active:boolean };
+export type Guest = { id:number; name:string; side:string|null; group_name:string|null; table_id:number|null; active:boolean };
+export type WeddingTable = { id:number; name:string; sort_order:number; active:boolean };
 export type Moment = { id:number; name:string; sort_order:number; active:boolean };
 export type Photo = {
   id:string;
@@ -17,13 +18,19 @@ export type Photo = {
 };
 
 export async function getCatalog() {
-  const [{data: guests, error: ge}, {data: moments, error: me}] = await Promise.all([
-    supabase.from('guests').select('id,name,side,group_name,active').eq('active', true).order('name'),
+  const [{data: guests, error: ge}, {data: moments, error: me}, {data: tables, error: te}] = await Promise.all([
+    supabase.from('guests').select('id,name,side,group_name,table_id,active').eq('active', true).order('name'),
     supabase.from('moments').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
+    supabase.from('wedding_tables').select('id,name,sort_order,active').eq('active', true).order('sort_order'),
   ]);
   if (ge) throw ge;
   if (me) throw me;
-  return { guests: (guests ?? []) as Guest[], moments: (moments ?? []) as Moment[] };
+  if (te) throw te;
+  return {
+    guests: (guests ?? []) as Guest[],
+    moments: (moments ?? []) as Moment[],
+    tables: (tables ?? []) as WeddingTable[],
+  };
 }
 
 export async function getGalleryPage(momentId:number|null, personId:number|null, offset=0, limit=60) {
