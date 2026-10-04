@@ -32,7 +32,13 @@ export default function Album(){
     {loading&&<div className="empty">A carregar álbum…</div>}
     {error&&<p className="notice">{error}</p>}
     {!loading&&!error&&(filtered.length
-      ?<div className="album-grid">{filtered.map(p=><img key={p.id} className="photo" src={p.url} alt="Fotografia do casamento" loading="lazy"/>)}</div>
+      ?<div className="album-grid">{filtered.map(p=>{
+        const uploader=guests.find(g=>g.id===p.uploader_guest_id)?.name || 'Convidado';
+        return <article className="album-card" key={p.id}>
+          <img className="photo" src={p.url} alt="Fotografia do casamento" loading="lazy"/>
+          <div className="photo-meta">Publicada por <strong>{uploader}</strong></div>
+        </article>;
+      })}</div>
       :<div className="empty"><Images size={34}/><strong>Ainda não há fotos aqui</strong><span>Publica a primeira fotografia.</span></div>)}
   </Page>;
 }
