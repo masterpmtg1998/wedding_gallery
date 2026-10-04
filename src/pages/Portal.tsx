@@ -19,6 +19,8 @@ export default function Portal(){
   const [weddingDate,setWeddingDate]=useState('');
   const [inviteEmail,setInviteEmail]=useState('');
   const [message,setMessage]=useState('');
+  const [inviting,setInviting]=useState(false);
+  const [inviteLink,setInviteLink]=useState('');
 
   async function load(){
     setLoading(true);
@@ -58,9 +60,16 @@ export default function Portal(){
     catch(e:any){setMessage(e.message||'Não foi possível criar o casamento.')}
   }
   async function invite(e:React.FormEvent){
-    e.preventDefault();if(!wedding)return;
-    try{await inviteWeddingMember(wedding.id,inviteEmail);setInviteEmail('');setMessage('Convite preparado. Quando essa pessoa criar/entrar na conta com este email, terá acesso ao casamento.');}
-    catch(e:any){setMessage(e.message||'Não foi possível criar o convite.')}
+    e.preventDefault();if(!wedding||inviting)return;
+    setInviting(true);setMessage('');setInviteLink('');
+    try{
+      const target=inviteEmail.trim().toLowerCase();
+      await inviteWeddingMember(wedding.id,target);
+      const link=window.location.origin+'/portal?invite='+encodeURIComponent(target);
+      setInviteLink(link);setInviteEmail('');
+      setMessage('Convite criado. Partilha o link abaixo com a pessoa convidada.');
+    }catch(e:any){setMessage(e.message||'Não foi possível criar o convite.')}
+    finally{setInviting(false)}
   }
   async function replace(slot:number,file?:File){
     if(!file||!wedding)return;
@@ -119,7 +128,8 @@ export default function Portal(){
     </section>
     <section className="portal-card portal-invite">
       <div className="portal-section-title"><div><span>Equipa</span><h2>Partilhar gestão</h2><p>Convida a outra pessoa do casal ou um organizador. O acesso fica ligado ao workspace.</p></div></div>
-      <form onSubmit={invite}><input className="search" type="email" required placeholder="Email a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit">Convidar</button></form>
+      <form onSubmit={invite}><input className="search" type="email" required placeholder="Email a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit" disabled={inviting}>{inviting?'A convidar…':'Convidar'}</button></form>
+      {inviteLink&&<div className="invite-result"><span>Link de convite</span><code>{inviteLink}</code><button type="button" onClick={()=>navigator.clipboard.writeText(inviteLink)}><Copy size={15}/>Copiar link</button></div>}
     </section>
     <section className="portal-card">
       <div className="portal-section-title"><div><span>Landing page</span><h2>Fotos de abertura</h2><p>Carrega os originais. Depois ajusta o ponto principal da imagem sem alterar o ficheiro.</p></div><ImagePlus size={25}/></div>
