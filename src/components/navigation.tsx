@@ -24,7 +24,7 @@ export function Page({title,children,showNav=true}:{title:string;children:ReactN
     <main className={'page '+(showNav?'with-nav':'')}>
       <header className="pagehead">
         <button className="back" onClick={()=>nav('/')} aria-label="Voltar"><ArrowLeft size={20}/></button>
-        <div><div className="eyebrow">Pedro & Tânia</div><h1>{title}</h1></div>
+        <div className="page-title-wrap"><div className="eyebrow">Pedro & Tânia · 04.09.2027</div><h1>{title}</h1></div>
       </header>
       {children}
     </main>
