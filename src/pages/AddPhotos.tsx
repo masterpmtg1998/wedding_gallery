@@ -5,6 +5,7 @@ import { Page } from '../components/navigation';
 import { uploadPhoto } from '../api';
 import { useCatalog } from '../hooks/useCatalog';
 import { getGuestId } from '../lib/guest';
+import { getWeddingSlug, weddingPath } from '../lib/wedding';
 
 type PendingPhoto = {
   id:string;
@@ -15,6 +16,7 @@ type PendingPhoto = {
 };
 
 export default function AddPhotos(){
+  const slug=getWeddingSlug();
   const [,nav]=useLocation();
   const {guests,moments,loading,error:catalogError}=useCatalog();
   const guestId=getGuestId();
@@ -39,7 +41,7 @@ export default function AddPhotos(){
       <div className="empty">
         <strong>Precisamos de saber quem és</strong>
         <span>Se este navegador já te reconhecer, não voltaremos a perguntar.</span>
-        <button className="empty-cta" onClick={()=>nav('/identificar?next=/adicionar')}>Escolher o meu nome</button>
+        <button className="empty-cta" onClick={()=>nav(weddingPath('/identificar')+'?next='+encodeURIComponent(weddingPath('/adicionar')))}>Escolher o meu nome</button>
       </div>
     </Page>;
   }
@@ -118,11 +120,11 @@ export default function AddPhotos(){
     try{
       for(let i=0;i<photos.length;i++){
         const p=photos[i];
-        await uploadPhoto(p.file,p.momentId!,guestId!,p.personIds);
+        await uploadPhoto(p.file,p.momentId!,guestId!,p.personIds,slug);
         setDone(i+1);
       }
       photos.forEach(p=>URL.revokeObjectURL(p.preview));
-      nav('/album');
+      nav(weddingPath('/album'));
     }catch(e:any){
       setError(e?.message||'Não foi possível enviar as fotografias.');
     }finally{
