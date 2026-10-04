@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Camera, Images, MapPin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { getGuestId } from '../lib/guest';
+import { getWeddingSlug, weddingPath } from '../lib/wedding';
 
 type Slide={url:string;focal_x:number;focal_y:number};
 const fallbackSlides:Slide[]=['/couple/1.svg','/couple/2.svg','/couple/3.svg','/couple/4.svg'].map(url=>({url,focal_x:50,focal_y:50}));
 
 export default function Landing(){
+  const slug=getWeddingSlug();
   const [,nav]=useLocation();
   const [slide,setSlide]=useState(0);
   const [slides,setSlides]=useState<Slide[]>(fallbackSlides);
@@ -16,7 +18,7 @@ export default function Landing(){
   useEffect(()=>{
     const guestId=getGuestId();
     if(!guestId){
-      nav('/identificar?next=/');
+      nav(weddingPath('/identificar')+'?next='+encodeURIComponent(weddingPath('/')));
       return;
     }
 
@@ -25,9 +27,9 @@ export default function Landing(){
       try{
         const {getCatalog,getTrendingPhotos,getLandingMedia}=await import('../api');
         const [{guests,tables},trending,branding]=await Promise.all([
-          getCatalog(),
-          getTrendingPhotos(10),
-          getLandingMedia(),
+          getCatalog(slug),
+          getTrendingPhotos(10,slug),
+          getLandingMedia(slug),
         ]);
         if(cancelled)return;
 
@@ -91,13 +93,13 @@ export default function Landing(){
 
       <p>Vive, fotografa e partilha connosco os momentos que só tu viste.</p>
 
-      <button className="landing-cta" onClick={()=>nav('/adicionar')}>
+      <button className="landing-cta" onClick={()=>nav(weddingPath('/adicionar'))}>
         <Camera size={19}/>Publicar fotografias
       </button>
 
       <div className="landing-actions">
-        <Link href="/album" className="landing-secondary"><Images size={16}/>Álbum</Link>
-        <Link href="/mesas" className="landing-secondary"><MapPin size={16}/>Mesas</Link>
+        <Link href={weddingPath('/album')} className="landing-secondary"><Images size={16}/>Álbum</Link>
+        <Link href={weddingPath('/mesas')} className="landing-secondary"><MapPin size={16}/>Mesas</Link>
       </div>
 
       <div className="slide-dots">{slides.map((_,i)=><button key={i} className={currentSlide===i?'active':''} onClick={()=>setSlide(i)} aria-label={'Foto '+(i+1)}/>)}</div>
