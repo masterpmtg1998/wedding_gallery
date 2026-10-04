@@ -207,7 +207,12 @@ export async function createWeddingWorkspace(coupleNames:string,weddingDate:stri
 }
 export async function inviteWeddingMember(weddingId:string,email:string,role='editor'){
   const {data,error}=await supabase.functions.invoke('invite-wedding-manager',{body:{weddingId,email:email.trim().toLowerCase(),role}});
-  if(error)throw error;
+  if(error){
+    let detail='';
+    try{detail=(await error.context?.json?.())?.error||''}catch{}
+    if(detail.toLowerCase().includes('rate limit')||detail.toLowerCase().includes('email rate')) throw new Error('Limite temporário de envio de emails atingido. Tenta novamente dentro de alguns minutos.');
+    throw new Error(detail||error.message);
+  }
   if(data?.error)throw new Error(data.error);
 }
 export async function getWeddingTeam(weddingId:string){
