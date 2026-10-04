@@ -19,6 +19,10 @@ export default function Album(){
   const filtered=useMemo(()=>photos.filter(p=>(!moment||p.moment_id===moment)&&(!person||p.person_ids.includes(person))),[photos,moment,person]);
 
   return <Page title="Álbum">
+    <div className="album-intro">
+      <span>{filtered.length} ${filtered.length===1?'fotografia':'fotografias'}</span>
+      <p>O nosso dia visto por quem esteve connosco.</p>
+    </div>
     <div className="filter-block">
       <div className="chips horizontal">
         <button className={'chip '+(!moment?'active':'')} onClick={()=>setMoment(null)}>Todos</button>
