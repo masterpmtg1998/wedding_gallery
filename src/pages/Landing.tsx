@@ -79,7 +79,7 @@ export default function Landing(){
 
     <div className="landing-topline">
       <span>O nosso dia</span>
-      <span>{wedding?.wedding_date?new Date(wedding.wedding_date+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\\//g,' · '):''}</span>
+      <span>{wedding?.wedding_date?new Date(wedding.wedding_date+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).split('/').join(' · '):''}</span>
     </div>
 
     <div className="landing-content">
