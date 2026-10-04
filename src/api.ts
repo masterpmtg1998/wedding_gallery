@@ -206,8 +206,14 @@ export async function createWeddingWorkspace(coupleNames:string,weddingDate:stri
   if(error)throw error;return data as string;
 }
 export async function inviteWeddingMember(weddingId:string,email:string,role='editor'){
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)throw new Error('Sessão inválida');
-  const {error}=await supabase.from('wedding_invitations').upsert({wedding_id:weddingId,email:email.trim().toLowerCase(),role,invited_by:user.id},{onConflict:'wedding_id,email'});
+  const {error}=await supabase.rpc('invite_wedding_member',{p_wedding_id:weddingId,p_email:email.trim().toLowerCase(),p_role:role});
+  if(error)throw error;
+}
+export async function getWeddingTeam(weddingId:string){
+  const {data,error}=await supabase.rpc('get_wedding_team',{p_wedding_id:weddingId});
+  if(error)throw error;return data??[];
+}
+export async function cancelWeddingInvitation(weddingId:string,email:string){
+  const {error}=await supabase.rpc('cancel_wedding_invitation',{p_wedding_id:weddingId,p_email:email});
   if(error)throw error;
 }
