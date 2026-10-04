@@ -211,3 +211,31 @@ export async function updateLandingFocal(weddingId:string,slot:number,x:number,y
   const {error}=await supabase.from('landing_media').update({focal_x:x,focal_y:y,updated_at:new Date().toISOString()}).eq('wedding_id',weddingId).eq('slot',slot);
   if(error) throw error;
 }
+
+
+export async function acceptMyInvitations(){
+  const {error}=await supabase.rpc('accept_wedding_invitations');
+  if(error) throw error;
+}
+export async function getMyWeddings(){
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)return [];
+  await acceptMyInvitations();
+  const {data:members,error}=await supabase.from('wedding_members').select('wedding_id,role').eq('user_id',user.id);
+  if(error)throw error;
+  if(!members?.length)return [];
+  const {data:weddings,error:we}=await supabase.from('weddings').select('id,slug,couple_names,wedding_date').in('id',members.map((m:any)=>m.wedding_id));
+  if(we)throw we;
+  const roles=new Map(members.map((m:any)=>[m.wedding_id,m.role]));
+  return (weddings??[]).map((w:any)=>({...w,role:roles.get(w.id)}));
+}
+export async function createWeddingWorkspace(coupleNames:string,weddingDate:string){
+  const {data,error}=await supabase.rpc('create_wedding_workspace',{p_couple_names:coupleNames,p_wedding_date:weddingDate,p_slug:null});
+  if(error)throw error;return data as string;
+}
+export async function inviteWeddingMember(weddingId:string,email:string,role='editor'){
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)throw new Error('Sessão inválida');
+  const {error}=await supabase.from('wedding_invitations').upsert({wedding_id:weddingId,email:email.trim().toLowerCase(),role,invited_by:user.id},{onConflict:'wedding_id,email'});
+  if(error)throw error;
+}
