@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Copy, ExternalLink, ImagePlus, LogOut, QrCode, Save, Upload } from 'lucide-react';
-import { createWeddingWorkspace, getManagedLandingMedia, getMyWedding, getMyWeddings, inviteWeddingMember, updateLandingFocal, uploadLandingMedia } from '../api';
+import { cancelWeddingInvitation, createWeddingWorkspace, getManagedLandingMedia, getMyWeddings, getWeddingTeam, inviteWeddingMember, updateLandingFocal, uploadLandingMedia } from '../api';
 import { supabase } from '../supabase';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
@@ -20,7 +20,7 @@ export default function Portal(){
   const [inviteEmail,setInviteEmail]=useState('');
   const [message,setMessage]=useState('');
   const [inviting,setInviting]=useState(false);
-  const [inviteLink,setInviteLink]=useState('');
+  const [team,setTeam]=useState<any[]>([]);
 
   async function load(){
     setLoading(true);
@@ -31,8 +31,8 @@ export default function Portal(){
       setWorkspaces(ws);
       const w=ws[0]??null;
       setWedding(w);
-      if(w)setItems(await getManagedLandingMedia(w.id) as Item[]);
-      else setItems([]);
+      if(w){const [media,members]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id)]);setItems(media as Item[]);setTeam(members)}
+      else{setItems([]);setTeam([]);}
     }catch(e:any){setMessage(e.message||'Não foi possível abrir o portal.')}
     finally{setLoading(false)}
   }
@@ -61,13 +61,13 @@ export default function Portal(){
   }
   async function invite(e:React.FormEvent){
     e.preventDefault();if(!wedding||inviting)return;
-    setInviting(true);setMessage('');setInviteLink('');
+    setInviting(true);setMessage('');
     try{
       const target=inviteEmail.trim().toLowerCase();
       await inviteWeddingMember(wedding.id,target);
-      const link=window.location.origin+'/portal?invite='+encodeURIComponent(target);
-      setInviteLink(link);setInviteEmail('');
-      setMessage('Convite criado. Partilha o link abaixo com a pessoa convidada.');
+      setInviteEmail('');
+      setMessage('Convite de co-gestão criado.');
+      setTeam(await getWeddingTeam(wedding.id));
     }catch(e:any){setMessage(e.message||'Não foi possível criar o convite.')}
     finally{setInviting(false)}
   }
@@ -127,9 +127,10 @@ export default function Portal(){
       </div>
     </section>
     <section className="portal-card portal-invite">
-      <div className="portal-section-title"><div><span>Equipa</span><h2>Partilhar gestão</h2><p>Convida a outra pessoa do casal ou um organizador. O acesso fica ligado ao workspace.</p></div></div>
-      <form onSubmit={invite}><input className="search" type="email" required placeholder="Email a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit" disabled={inviting}>{inviting?'A convidar…':'Convidar'}</button></form>
-      {inviteLink&&<div className="invite-result"><span>Link de convite</span><code>{inviteLink}</code><button type="button" onClick={()=>navigator.clipboard.writeText(inviteLink)}><Copy size={15}/>Copiar link</button></div>}
+      <div className="portal-section-title"><div><span>Equipa do casamento</span><h2>Noivos e co-gestores</h2><p>Convida a tua noiva ou outra pessoa para gerir contigo este casamento. Isto é separado da lista de convidados.</p></div></div>
+      <form onSubmit={invite}><input className="search" type="email" required placeholder="Email da pessoa a convidar" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/><button className="primary" type="submit" disabled={inviting}>{inviting?'A convidar…':'Convidar co-gestor'}</button></form>
+      <div className="team-list">{team.map((m:any)=><div className="team-row" key={m.kind+'-'+m.email}><div><strong>{m.email}</strong><span>{m.role==='owner'?'Proprietário':m.role==='editor'?'Co-gestor':'Leitura'} · {m.status==='pending'?'Convite pendente':'Ativo'}</span></div>{m.status==='pending'&&<button type="button" onClick={async()=>{await cancelWeddingInvitation(wedding.id,m.email);setTeam(await getWeddingTeam(wedding.id));setMessage('Convite cancelado.')}}>Cancelar</button>}</div>)}</div>
+
     </section>
     <section className="portal-card">
       <div className="portal-section-title"><div><span>Landing page</span><h2>Fotos de abertura</h2><p>Carrega os originais. Depois ajusta o ponto principal da imagem sem alterar o ficheiro.</p></div><ImagePlus size={25}/></div>
