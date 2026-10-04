@@ -4,6 +4,7 @@ import { useLocation } from 'wouter';
 import { Page } from '../components/navigation';
 import { useCatalog } from '../hooks/useCatalog';
 import { getGuestId, setGuestId } from '../lib/guest';
+import { weddingPath } from '../lib/wedding';
 
 type EntryGroup='familia_noivo'|'familia_noiva'|'amigos';
 
@@ -18,7 +19,7 @@ export default function Identify(){
   const {guests,loading,error}=useCatalog();
   const [group,setGroup]=useState<EntryGroup|null>(null);
   const [q,setQ]=useState('');
-  const next=new URLSearchParams(window.location.search).get('next')||'/';
+  const next=new URLSearchParams(window.location.search).get('next')||weddingPath('/');
 
   const list=useMemo(()=>guests
     .filter(g=>!group||g.entry_group===group)
