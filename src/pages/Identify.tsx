@@ -7,10 +7,10 @@ import { getGuestId, setGuestId } from '../lib/guest';
 
 type EntryGroup='familia_noivo'|'familia_noiva'|'amigos';
 
-const groups:{id:EntryGroup;title:string;subtitle:string;icon:typeof UsersRound}[]=[
-  {id:'familia_noivo',title:'Família Noivo',subtitle:'Família do Pedro',icon:UsersRound},
-  {id:'familia_noiva',title:'Família Noiva',subtitle:'Família da Tânia',icon:UsersRound},
-  {id:'amigos',title:'Amigos',subtitle:'Amigos dos dois',icon:HeartHandshake},
+const groups:{id:EntryGroup;title:string;icon:typeof UsersRound}[]=[
+  {id:'familia_noivo',title:'Família Noivo',icon:UsersRound},
+  {id:'familia_noiva',title:'Família Noiva',icon:UsersRound},
+  {id:'amigos',title:'Amigos',icon:HeartHandshake},
 ];
 
 export default function Identify(){
@@ -34,7 +34,6 @@ export default function Identify(){
         return <button key={item.id} className={'identity-group-card '+(group===item.id?'active':'')} onClick={()=>{setGroup(item.id);setQ('')}}>
           <span className="identity-group-icon"><Icon size={20}/></span>
           <strong>{item.title}</strong>
-          <small>{item.subtitle}</small>
         </button>;
       })}
     </div>
