@@ -646,3 +646,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
 @media(min-width:760px){.branding-grid{grid-template-columns:repeat(4,1fr)}.portal-shell{padding:40px 28px 80px}}
 
 .portal-login .search{width:100%}.auth-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px}.auth-links button{border:0;background:transparent;padding:0;color:var(--green);font-size:10px;text-decoration:underline;text-underline-offset:3px}
+
+.portal-invite{margin-bottom:14px}.portal-invite form{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:18px}.portal-invite .primary{margin:0;white-space:nowrap}@media(max-width:560px){.portal-invite form{grid-template-columns:1fr}}
