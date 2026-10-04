@@ -53,6 +53,18 @@ export async function getGallery() {
   })) as Photo[];
 }
 
+async function preparePhoto(file: File) {
+  const { compress } = await import('compresso.js');
+  const result = await compress(file, {
+    quality: 0.9,
+    maxWidth: 4096,
+    maxHeight: 4096,
+    maxSizeMB: 4,
+    format: 'jpeg',
+  });
+  return result.file;
+}
+
 export async function uploadPhoto(file:File, momentId:number, guestId:number|null, personIds:number[]) {
   const token = getDeviceToken();
   const sessionHash = await sha256(token);
@@ -83,7 +95,11 @@ export async function uploadPhoto(file:File, momentId:number, guestId:number|nul
   }
 
   if (personIds.length) {
-    const {error: peopleError} = await supabase.from('photo_people').insert(personIds.map(guest_id=>({photo_id:photo.id,guest_id})));
+    const {error: peopleError} = await supabase.rpc('set_photo_people',{
+      p_photo_id:photo.id,
+      p_guest_ids:personIds,
+      p_session_token:token,
+    });
     if (peopleError) throw peopleError;
   }
   return photo.id as string;
