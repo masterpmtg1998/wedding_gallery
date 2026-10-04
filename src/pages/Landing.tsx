@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Camera, Images, MapPin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { getGuestId } from '../lib/guest';
+import { clearGuestId, getGuestId } from '../lib/guest';
 import { getWeddingSlug, weddingPath } from '../lib/wedding';
 
 type Slide={url:string;focal_x:number;focal_y:number};
@@ -14,6 +14,7 @@ export default function Landing(){
   const [slides,setSlides]=useState<Slide[]>(fallbackSlides);
   const [guestName,setGuestName]=useState('');
   const [tableName,setTableName]=useState('');
+  const [wedding,setWedding]=useState<any>(null);
 
   useEffect(()=>{
     const guestId=getGuestId();
@@ -25,17 +26,19 @@ export default function Landing(){
     let cancelled=false;
     (async()=>{
       try{
-        const {getCatalog,getTrendingPhotos,getLandingMedia}=await import('../api');
-        const [{guests,tables},trending,branding]=await Promise.all([
+        const {getCatalog,getTrendingPhotos,getLandingMedia,getPublicWedding}=await import('../api');
+        const [{guests,tables},trending,branding,weddingInfo]=await Promise.all([
           getCatalog(slug),
           getTrendingPhotos(10,slug),
           getLandingMedia(slug),
+          getPublicWedding(slug),
         ]);
         if(cancelled)return;
+        setWedding(weddingInfo);
 
         const guest=guests.find(g=>g.id===guestId);
         if(!guest){
-          localStorage.removeItem('wedding_guest_id');
+          clearGuestId();
           nav('/identificar?next=/');
           return;
         }
@@ -70,17 +73,17 @@ export default function Landing(){
 
   return <main className="landing">
     <div className="landing-slides">
-      {slides.map((item,i)=><img key={item.url} src={item.url} style={{objectPosition:`${item.focal_x}% ${item.focal_y}%`}} className={'landing-slide '+(currentSlide===i?'show':'')} alt="Memórias de Pedro e Tânia"/>)}
+      {slides.map((item,i)=><img key={item.url} src={item.url} style={{objectPosition:`${item.focal_x}% ${item.focal_y}%`}} className={'landing-slide '+(currentSlide===i?'show':'')} alt="Memórias do casamento"/>)}
       <div className="landing-overlay"/>
     </div>
 
     <div className="landing-topline">
       <span>O nosso dia</span>
-      <span>04 · 09 · 2027</span>
+      <span>{wedding?.wedding_date?new Date(wedding.wedding_date+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).replaceAll('/',' · '):''}</span>
     </div>
 
     <div className="landing-content">
-      <div className="landing-kicker">Pedro & Tânia</div>
+      <div className="landing-kicker">{wedding?.couple_names||'O nosso casamento'}</div>
       <h1>Um dia<br/><em>para sempre.</em></h1>
       <div className="landing-rule"><span>✦</span></div>
 
