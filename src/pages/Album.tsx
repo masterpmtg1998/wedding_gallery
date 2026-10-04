@@ -20,7 +20,7 @@ export default function Album(){
 
   return <Page title="Álbum">
     <div className="album-intro">
-      <span>{filtered.length} ${filtered.length===1?'fotografia':'fotografias'}</span>
+      <span>{filtered.length} {filtered.length===1?'fotografia':'fotografias'}</span>
       <p>O nosso dia visto por quem esteve connosco.</p>
     </div>
     <div className="filter-block">
