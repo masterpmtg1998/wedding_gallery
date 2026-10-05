@@ -328,3 +328,25 @@ export async function updatePlannerDocument(id:string,patch:Partial<PlannerDocum
 export async function getPlannerSchedule(weddingId:string){const {data,error}=await supabase.from('planner_schedule').select('*').eq('wedding_id',weddingId).order('domain').order('starts_at',{ascending:true,nullsFirst:false}).order('sort_order');if(error)throw error;return (data??[]) as PlannerScheduleItem[];}
 export async function createPlannerScheduleItem(weddingId:string,domain:PlannerScheduleItem['domain'],title:string){const {data,error}=await supabase.from('planner_schedule').insert({wedding_id:weddingId,domain,title:title.trim()}).select('*').single();if(error)throw error;return data as PlannerScheduleItem;}
 export async function updatePlannerScheduleItem(id:string,patch:Partial<PlannerScheduleItem>){const {error}=await supabase.from('planner_schedule').update({...patch,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}
+
+
+export async function seedPlannerDefaults(weddingId:string){
+  const {data,error}=await supabase.rpc('seed_wedding_planner_defaults',{p_wedding_id:weddingId});if(error)throw error;return Number(data||0);
+}
+export async function createManagedGuest(weddingId:string,name:string,entryGroup:'familia_noivo'|'familia_noiva'|'amigos'='amigos'){
+  const {data,error}=await supabase.from('guests').insert({wedding_id:weddingId,name:name.trim(),entry_group:entryGroup,active:true,rsvp_status:'pending'}).select('*').single();if(error)throw error;return data;
+}
+export async function archiveManagedGuest(id:number){const {error}=await supabase.from('guests').update({active:false,table_id:null}).eq('id',id);if(error)throw error;}
+
+export async function uploadPlannerDocumentFile(weddingId:string,documentId:string,file:File){
+  const ext=(file.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+  const path=weddingId+'/documents/'+documentId+'-'+crypto.randomUUID()+'.'+ext;
+  const {error:ue}=await supabase.storage.from('wedding-documents').upload(path,file,{contentType:file.type||undefined,upsert:false});
+  if(ue)throw ue;
+  const {error:de}=await supabase.from('planner_documents').update({storage_path:path}).eq('id',documentId);
+  if(de){await supabase.storage.from('wedding-documents').remove([path]);throw de}
+  return path;
+}
+export async function getPlannerDocumentUrl(path:string){
+  const {data,error}=await supabase.storage.from('wedding-documents').createSignedUrl(path,900);if(error)throw error;return data.signedUrl;
+}
