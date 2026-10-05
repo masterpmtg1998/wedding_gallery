@@ -182,7 +182,7 @@ export default function Portal(){
               const children=parents.flatMap(p=>tasks.filter(t=>t.parent_id===p.id));
               const relevant=children.length?children:parents;
               const done=relevant.filter(t=>t.status==='done').length;
-              return <button key={stage.slug} className={sub===stage.slug?'active':''} onClick={()=>go('planeamento',stage.slug)}>
+              return <button key={stage.slug} className={(sub===stage.slug?'active ':'')+(stageIsDone(stage)?'stage-complete':'')} onClick={()=>go('planeamento',stage.slug)}>
                 <Icon/><div><strong>{stage.label}</strong><small>{relevant.length?done+'/'+relevant.length+' concluídos':'Preparar etapa'}</small></div>{relevant.length>0&&<span className="stage-nav-progress">{Math.round(done/relevant.length*100)}%</span>}
               </button>
             })}
