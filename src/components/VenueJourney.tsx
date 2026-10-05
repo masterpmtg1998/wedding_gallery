@@ -79,7 +79,7 @@ export default function VenueJourney({weddingId}:{weddingId:string}){
 
     {step==='options'&&<section className="portal-card">
       <div className="portal-section-title"><div><span>Opções</span><h2>Quintas em análise</h2><p>Adiciona só o essencial. Preços, visitas e detalhes podem ser completados depois.</p></div></div>
-      <form className="venue-add-option" onSubmit={async e=>{e.preventDefault();if(!name.trim())return;setSaving(true);try{await createVenueOption(weddingId,{name,location});setName('');setLocation('');await load()}finally{setSaving(false)}}>
+      <form className="venue-add-option" onSubmit={async e=>{e.preventDefault();if(!name.trim())return;setSaving(true);try{await createVenueOption(weddingId,{name,location});setName('');setLocation('');await load()}finally{setSaving(false)}}}>
         <input className="search" required placeholder="Nome da quinta" value={name} onChange={e=>setName(e.target.value)}/>
         <input className="search" placeholder="Localização" value={location} onChange={e=>setLocation(e.target.value)}/>
         <button className="primary" disabled={saving}><Plus size={15}/>Adicionar</button>
