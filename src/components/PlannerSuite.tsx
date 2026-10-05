@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, FileText, ListChecks, MapPin, Music2, Palette, Plane, Plus, Scale, Search, Sparkles, UsersRound } from 'lucide-react';
+import { CalendarClock, CheckCircle2, FileText, ListChecks, MapPin, Music2, Palette, Plane, Plus, Scale, Search, Sparkles, UsersRound, Tags, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   assignGuestToTable, archiveManagedGuest, createManagedGuest, createManagedTable, createPlannerDecision, createPlannerDocument, createPlannerMeeting, createPlannerPayment,
   createPlannerScheduleItem, getManagedGuests, getManagedTables, getPlannerDecisions, getPlannerDocuments, getPlannerGuestStats,
@@ -27,6 +27,12 @@ export default function PlannerSuite({weddingId,mode}:Props){
   const [payments,setPayments]=useState<PlannerPayment[]>([]);
   const [documents,setDocuments]=useState<PlannerDocument[]>([]);
   const [schedule,setSchedule]=useState<PlannerScheduleItem[]>([]);
+  const [internalGroups,setInternalGroups]=useState<GuestInternalGroup[]>([]);
+  const [groupMembers,setGroupMembers]=useState<GuestInternalGroupMember[]>([]);
+  const [manageGroups,setManageGroups]=useState(false);
+  const [classifyingGuest,setClassifyingGuest]=useState<number|null>(null);
+  const [newInternalGroup,setNewInternalGroup]=useState('');
+  const [newInternalParent,setNewInternalParent]=useState<string>('');
   const [query,setQuery]=useState('');
   const [newGuest,setNewGuest]=useState(''); const [newGuestGroup,setNewGuestGroup]=useState<'familia_noivo'|'familia_noiva'|'amigos'>('amigos');
   const [tableName,setTableName]=useState('');
@@ -46,11 +52,12 @@ export default function PlannerSuite({weddingId,mode}:Props){
   async function load(){
     setLoading(true);
     try{
-      const [g,t,s,d,m,p,docs,sch]=await Promise.all([
+      try{await seedGuestInternalGroups(weddingId)}catch{}
+      const [g,t,s,d,m,p,docs,sch,ig,igm]=await Promise.all([
         getManagedGuests(weddingId),getManagedTables(weddingId),getPlannerGuestStats(weddingId),getPlannerDecisions(weddingId),
-        getPlannerMeetings(weddingId),getPlannerPayments(weddingId),getPlannerDocuments(weddingId),getPlannerSchedule(weddingId)
+        getPlannerMeetings(weddingId),getPlannerPayments(weddingId),getPlannerDocuments(weddingId),getPlannerSchedule(weddingId),getGuestInternalGroups(weddingId),getGuestInternalGroupMembers(weddingId)
       ]);
-      setGuests(g as any[]);setTables(t as any[]);setStats(s);setDecisions(d);setMeetings(m);setPayments(p);setDocuments(docs);setSchedule(sch);
+      setGuests(g as any[]);setTables(t as any[]);setStats(s);setDecisions(d);setMeetings(m);setPayments(p);setDocuments(docs);setSchedule(sch);setInternalGroups(ig);setGroupMembers(igm);
     }catch(e:any){setMessage(e.message||'Não foi possível carregar o planeamento.')}
     finally{setLoading(false)}
   }
@@ -61,7 +68,8 @@ export default function PlannerSuite({weddingId,mode}:Props){
   const pendingPayments=payments.filter(p=>p.status==='pending');
   const openDecisions=decisions.filter(d=>d.status==='open');
 
-  async function refreshGuests(){setGuests(await getManagedGuests(weddingId) as any[]);setStats(await getPlannerGuestStats(weddingId))}
+  async function refreshGuests(){setGuests(await getManagedGuests(weddingId) as any[]);setStats(await getPlannerGuestStats(weddingId));setGroupMembers(await getGuestInternalGroupMembers(weddingId))}
+  async function refreshGroups(){setInternalGroups(await getGuestInternalGroups(weddingId));setGroupMembers(await getGuestInternalGroupMembers(weddingId))}
   async function chooseTable(id:number){
     setSelectedTable(id);
     try{setSuggestions(await getTableSuggestions(id,10))}catch{setSuggestions([])}
@@ -70,25 +78,63 @@ export default function PlannerSuite({weddingId,mode}:Props){
   if(loading)return <section className="portal-card">A preparar o wedding planner…</section>;
 
   if(mode==='guests')return <section className="portal-card">
-    <div className="portal-section-title"><div><span>RSVP & convidados</span><h2>Lista de convidados</h2><p>Confirmações, contactos, restrições alimentares e estado de cada convite.</p></div><UsersRound size={24}/></div>
+    <div className="portal-section-title"><div><span>RSVP & convidados</span><h2>Lista de convidados</h2><p>Confirmações, contactos, restrições alimentares e grupos internos para ajudar no seating plan.</p></div><UsersRound size={24}/></div>
     <div className="planner-mini-stats">
       <div><span>Total</span><strong>{stats.total}</strong></div><div><span>Confirmados</span><strong>{stats.accepted}</strong></div>
       <div><span>Pendentes</span><strong>{stats.pending}</strong></div><div><span>Recusados</span><strong>{stats.declined}</strong></div>
     </div>
+    <div className="guest-classification-toolbar">
+      <div><Tags size={16}/><div><strong>Classificação interna</strong><small>Privada. Serve para organização e sugestões de mesas; nunca aparece aos convidados.</small></div></div>
+      <button onClick={()=>setManageGroups(v=>!v)}>{manageGroups?'Fechar':'Gerir classificações'} {manageGroups?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button>
+    </div>
+    {manageGroups&&<section className="guest-classification-manager">
+      <div className="guest-classification-tree">
+        {internalGroups.filter(g=>!g.parent_id).map(parent=><article key={parent.id}>
+          <div className="classification-parent"><strong>{parent.name}</strong><span>{internalGroups.filter(g=>g.parent_id===parent.id).length} subgrupos</span></div>
+          <div className="classification-children">
+            {internalGroups.filter(g=>g.parent_id===parent.id).map(child=><div key={child.id}><Tags size={13}/><strong>{child.name}</strong><button onClick={async()=>{if(!confirm('Arquivar classificação '+child.name+'?'))return;await updateGuestInternalGroup(child.id,{active:false});await refreshGroups()}}>Arquivar</button></div>)}
+            {!internalGroups.some(g=>g.parent_id===parent.id)&&<small>Sem subgrupos ainda.</small>}
+          </div>
+        </article>)}
+      </div>
+      <form className="classification-add-form" onSubmit={async e=>{e.preventDefault();if(!newInternalGroup.trim())return;await createGuestInternalGroup(weddingId,newInternalGroup,newInternalParent||null);setNewInternalGroup('');await refreshGroups()}}>
+        <select value={newInternalParent} onChange={e=>setNewInternalParent(e.target.value)}>
+          <option value="">Nova categoria principal</option>
+          {internalGroups.filter(g=>!g.parent_id).map(g=><option key={g.id} value={g.id}>Dentro de {g.name}</option>)}
+        </select>
+        <input className="search" value={newInternalGroup} onChange={e=>setNewInternalGroup(e.target.value)} placeholder={newInternalParent?'Ex. Amigos Angola':'Ex. Trabalho'}/>
+        <button className="primary"><Plus size={14}/> Adicionar</button>
+      </form>
+    </section>}
     <form className="guest-add-form" onSubmit={async e=>{e.preventDefault();if(!newGuest.trim())return;await createManagedGuest(weddingId,newGuest,newGuestGroup);setNewGuest('');await refreshGuests()}}>
       <input className="search" value={newGuest} onChange={e=>setNewGuest(e.target.value)} placeholder="Adicionar convidado"/>
       <select value={newGuestGroup} onChange={e=>setNewGuestGroup(e.target.value as any)}><option value="familia_noivo">Família Noivo</option><option value="familia_noiva">Família Noiva</option><option value="amigos">Amigos</option></select>
       <button className="primary"><Plus size={14}/> Adicionar</button>
     </form>
     <div className="planner-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar convidado ou grupo"/></div>
-    <div className="guest-admin-list">{filteredGuests.map(g=><div className="guest-admin-row" key={g.id}>
-      <div className="guest-admin-main"><strong>{g.name}</strong><small>{g.group_name||g.entry_group||'Sem grupo'}</small></div>
-      <select value={g.rsvp_status} onChange={async e=>{await updateManagedGuest(g.id,{rsvp_status:e.target.value,rsvp_at:e.target.value==='accepted'||e.target.value==='declined'?new Date().toISOString():null});await refreshGuests()}}>
-        <option value="pending">Pendente</option><option value="accepted">Confirmado</option><option value="maybe">Talvez</option><option value="declined">Não vem</option>
-      </select>
-      <input placeholder="Alergias / alimentação" value={g.dietary_notes||''} onChange={e=>setGuests(v=>v.map(x=>x.id===g.id?{...x,dietary_notes:e.target.value}:x))} onBlur={e=>updateManagedGuest(g.id,{dietary_notes:e.target.value||null})}/>
-      <button className="guest-archive" title="Remover convidado" onClick={async()=>{if(!confirm('Remover '+g.name+' da lista?'))return;await archiveManagedGuest(g.id);await refreshGuests()}}>Remover</button>
-    </div>)}</div>
+    <div className="guest-admin-list">{filteredGuests.map(g=>{
+      const assignedIds=groupMembers.filter(m=>m.guest_id===g.id).map(m=>m.group_id);
+      const assignedGroups=internalGroups.filter(ig=>assignedIds.includes(ig.id)&&ig.parent_id);
+      return <div className={'guest-admin-row-wrap '+(classifyingGuest===g.id?'open':'')} key={g.id}>
+        <div className="guest-admin-row">
+          <div className="guest-admin-main"><strong>{g.name}</strong><small>{g.entry_group==='familia_noivo'?'Família Noivo':g.entry_group==='familia_noiva'?'Família Noiva':'Amigos'}</small><div className="guest-internal-tags">{assignedGroups.slice(0,3).map(ig=><span key={ig.id}>{ig.name}</span>)}{assignedGroups.length>3&&<span>+{assignedGroups.length-3}</span>}</div></div>
+          <select value={g.rsvp_status} onChange={async e=>{await updateManagedGuest(g.id,{rsvp_status:e.target.value,rsvp_at:e.target.value==='accepted'||e.target.value==='declined'?new Date().toISOString():null});await refreshGuests()}}>
+            <option value="pending">Pendente</option><option value="accepted">Confirmado</option><option value="maybe">Talvez</option><option value="declined">Não vem</option>
+          </select>
+          <input placeholder="Alergias / alimentação" value={g.dietary_notes||''} onChange={e=>setGuests(v=>v.map(x=>x.id===g.id?{...x,dietary_notes:e.target.value}:x))} onBlur={e=>updateManagedGuest(g.id,{dietary_notes:e.target.value||null})}/>
+          <button className="guest-classify" onClick={()=>setClassifyingGuest(classifyingGuest===g.id?null:g.id)}><Tags size={14}/> Classificar</button>
+          <button className="guest-archive" title="Remover convidado" onClick={async()=>{if(!confirm('Remover '+g.name+' da lista?'))return;await archiveManagedGuest(g.id);await refreshGuests()}}>Remover</button>
+        </div>
+        {classifyingGuest===g.id&&<div className="guest-classification-picker">
+          <div><strong>Classificação interna de {g.name}</strong><small>Podes escolher vários grupos.</small></div>
+          {internalGroups.filter(parent=>!parent.parent_id).map(parent=><section key={parent.id}><span>{parent.name}</span><div>{internalGroups.filter(child=>child.parent_id===parent.id).map(child=>{
+            const checked=assignedIds.includes(child.id);
+            return <label key={child.id} className={checked?'checked':''}><input type="checkbox" checked={checked} onChange={async e=>{await setGuestInternalGroupMembership(weddingId,g.id,child.id,e.target.checked);await refreshGroups()}}/><span>{child.name}</span></label>
+          })}</div></section>)}
+          <button onClick={()=>setManageGroups(true)}>+ Gerir classificações</button>
+        </div>}
+      </div>
+    })}</div>
     {message&&<p className="portal-message">{message}</p>}
   </section>;
 
