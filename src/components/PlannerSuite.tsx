@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckCircle2, FileText, ListChecks, MapPin, Music2, Palette, Plane, Plus, Scale, Search, Sparkles, UsersRound } from 'lucide-react';
 import {
-  assignGuestToTable, createManagedTable, createPlannerDecision, createPlannerDocument, createPlannerMeeting, createPlannerPayment,
+  assignGuestToTable, archiveManagedGuest, createManagedGuest, createManagedTable, createPlannerDecision, createPlannerDocument, createPlannerMeeting, createPlannerPayment,
   createPlannerScheduleItem, getManagedGuests, getManagedTables, getPlannerDecisions, getPlannerDocuments, getPlannerGuestStats,
-  getPlannerMeetings, getPlannerPayments, getPlannerSchedule, getTableSuggestions, updateManagedGuest, updatePlannerDecision,
-  updatePlannerDocument, updatePlannerMeeting, updatePlannerPayment, updatePlannerScheduleItem,
+  getPlannerDocumentUrl, getPlannerMeetings, getPlannerPayments, getPlannerSchedule, getTableSuggestions, updateManagedGuest, updatePlannerDecision,
+  updatePlannerDocument, updatePlannerMeeting, updatePlannerPayment, updatePlannerScheduleItem, uploadPlannerDocumentFile,
   type PlannerDecision, type PlannerDocument, type PlannerMeeting, type PlannerPayment, type PlannerScheduleItem
 } from '../api';
 
@@ -28,6 +28,7 @@ export default function PlannerSuite({weddingId,mode}:Props){
   const [documents,setDocuments]=useState<PlannerDocument[]>([]);
   const [schedule,setSchedule]=useState<PlannerScheduleItem[]>([]);
   const [query,setQuery]=useState('');
+  const [newGuest,setNewGuest]=useState(''); const [newGuestGroup,setNewGuestGroup]=useState<'familia_noivo'|'familia_noiva'|'amigos'>('amigos');
   const [tableName,setTableName]=useState('');
   const [tableCapacity,setTableCapacity]=useState('10');
   const [selectedTable,setSelectedTable]=useState<number|null>(null);
@@ -74,6 +75,11 @@ export default function PlannerSuite({weddingId,mode}:Props){
       <div><span>Total</span><strong>{stats.total}</strong></div><div><span>Confirmados</span><strong>{stats.accepted}</strong></div>
       <div><span>Pendentes</span><strong>{stats.pending}</strong></div><div><span>Recusados</span><strong>{stats.declined}</strong></div>
     </div>
+    <form className="guest-add-form" onSubmit={async e=>{e.preventDefault();if(!newGuest.trim())return;await createManagedGuest(weddingId,newGuest,newGuestGroup);setNewGuest('');await refreshGuests()}}>
+      <input className="search" value={newGuest} onChange={e=>setNewGuest(e.target.value)} placeholder="Adicionar convidado"/>
+      <select value={newGuestGroup} onChange={e=>setNewGuestGroup(e.target.value as any)}><option value="familia_noivo">Família Noivo</option><option value="familia_noiva">Família Noiva</option><option value="amigos">Amigos</option></select>
+      <button className="primary"><Plus size={14}/> Adicionar</button>
+    </form>
     <div className="planner-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar convidado ou grupo"/></div>
     <div className="guest-admin-list">{filteredGuests.map(g=><div className="guest-admin-row" key={g.id}>
       <div className="guest-admin-main"><strong>{g.name}</strong><small>{g.group_name||g.entry_group||'Sem grupo'}</small></div>
@@ -81,6 +87,7 @@ export default function PlannerSuite({weddingId,mode}:Props){
         <option value="pending">Pendente</option><option value="accepted">Confirmado</option><option value="maybe">Talvez</option><option value="declined">Não vem</option>
       </select>
       <input placeholder="Alergias / alimentação" value={g.dietary_notes||''} onChange={e=>setGuests(v=>v.map(x=>x.id===g.id?{...x,dietary_notes:e.target.value}:x))} onBlur={e=>updateManagedGuest(g.id,{dietary_notes:e.target.value||null})}/>
+      <button className="guest-archive" title="Remover convidado" onClick={async()=>{if(!confirm('Remover '+g.name+' da lista?'))return;await archiveManagedGuest(g.id);await refreshGuests()}}>Remover</button>
     </div>)}</div>
     {message&&<p className="portal-message">{message}</p>}
   </section>;
@@ -138,7 +145,7 @@ export default function PlannerSuite({weddingId,mode}:Props){
       <section className="portal-card compact-planner">
         <div className="portal-section-title"><div><span>Arquivo</span><h2>Contratos & documentos</h2></div><FileText size={22}/></div>
         <form className="planner-quick-add" onSubmit={async e=>{e.preventDefault();if(!documentTitle.trim())return;await createPlannerDocument(weddingId,documentTitle);setDocumentTitle('');setDocuments(await getPlannerDocuments(weddingId))}}><input className="search" value={documentTitle} onChange={e=>setDocumentTitle(e.target.value)} placeholder="Ex. Contrato do espaço"/><button className="primary"><Plus size={14}/></button></form>
-        <div className="mini-list">{documents.map(d=><div className="mini-row" key={d.id}><div><strong>{d.title}</strong><small>{d.category}</small></div><button onClick={async()=>{await updatePlannerDocument(d.id,{signed:!d.signed});setDocuments(await getPlannerDocuments(weddingId))}}>{d.signed?<CheckCircle2/>:'Assinar'}</button></div>)}</div>
+        <div className="mini-list">{documents.map(d=><div className="mini-row document-row" key={d.id}><div><strong>{d.title}</strong><small>{d.category}{d.storage_path?' · ficheiro guardado':''}</small></div><div className="document-actions">{d.storage_path&&<button onClick={async()=>window.open(await getPlannerDocumentUrl(d.storage_path!), '_blank')}>Abrir</button>}<label className="mini-upload">Ficheiro<input type="file" accept=".pdf,image/jpeg,image/png,image/webp" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;await uploadPlannerDocumentFile(weddingId,d.id,file);setDocuments(await getPlannerDocuments(weddingId))}}/></label><button onClick={async()=>{await updatePlannerDocument(d.id,{signed:!d.signed});setDocuments(await getPlannerDocuments(weddingId))}}>{d.signed?<CheckCircle2/>:'Assinar'}</button></div></div>)}</div>
       </section>
     </div>
 
