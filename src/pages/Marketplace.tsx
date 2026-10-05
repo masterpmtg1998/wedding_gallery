@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Gift, Search, ShoppingBag, Sparkles, Store } from 'lucide-react';
+import { Gift, Search, ShoppingBag, Sparkles, Store, ArrowRight } from 'lucide-react';
 import { getMarketplaceCatalog, getMarketplaceCategories, type MarketplaceCategory, type MarketplaceProduct } from '../api';
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n||0);
@@ -13,7 +13,8 @@ export default function Marketplace(){
 
   useEffect(()=>{(async()=>{try{const [c,p]=await Promise.all([getMarketplaceCategories(),getMarketplaceCatalog()]);setCategories(c);setProducts(p)}finally{setLoading(false)}})()},[]);
 
-  const filtered=useMemo(()=>products.filter(p=>(category==='all'||p.category_slug===category)&&(!query||[p.title,p.short_description,p.category_name].some(v=>(v||'').toLowerCase().includes(query.toLowerCase())))),[products,category,query]);
+  const topCategories=useMemo(()=>categories.filter(c=>!c.parent_id),[categories]);
+  const filtered=useMemo(()=>products.filter(p=>(category==='all'||p.category_slug===category||p.parent_category_slug===category)&&(!query||[p.title,p.short_description,p.category_name,p.parent_category_name].some(v=>(v||'').toLowerCase().includes(query.toLowerCase())))),[products,category,query]);
 
   return <div className="marketplace-shell">
     <section className="portal-card marketplace-hero">
@@ -26,7 +27,7 @@ export default function Marketplace(){
         <div className="planner-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar produtos, ideias ou categorias"/></div>
         <div className="marketplace-categories">
           <button className={category==='all'?'active':''} onClick={()=>setCategory('all')}>Tudo</button>
-          {categories.map(c=><button key={c.id} className={category===c.slug?'active':''} onClick={()=>setCategory(c.slug)}>{c.name}</button>)}
+          {topCategories.map(c=><button key={c.id} className={category===c.slug?'active':''} onClick={()=>setCategory(c.slug)}>{c.name}</button>)}
         </div>
       </div>
 
@@ -46,6 +47,11 @@ export default function Marketplace(){
         <strong>O marketplace está preparado.</strong>
         <span>Os primeiros produtos aparecem aqui assim que os fornecedores forem ativados. Para o casal será sempre uma única loja, independentemente de o fulfillment ser dropshipping ou feito por um pequeno negócio.</span>
       </div>}
+    </section>
+
+    <section className="portal-card marketplace-sell-cta">
+      <div><span className="planner-kicker"><Store size={14}/> Para vendedores</span><h2>Fazes produtos para casamentos?</h2><p>Pequenos negócios, makers e parceiros de fulfillment podem vender no mesmo marketplace, mantendo a operação independente.</p></div>
+      <a href="/vender">Quero vender <ArrowRight size={15}/></a>
     </section>
   </div>;
 }
