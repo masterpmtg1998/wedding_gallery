@@ -433,3 +433,9 @@ export async function upsertPlannerJourneyState(weddingId:string,journeyKey:stri
   });
   if(error)throw error; return data as PlannerJourneyState;
 }
+
+
+export async function seedWeddingBudgetDefaults(weddingId:string){
+  const {data,error}=await supabase.rpc('seed_wedding_budget_defaults',{p_wedding_id:weddingId});
+  if(error)throw error;return Number(data||0);
+}
