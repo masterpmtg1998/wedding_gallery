@@ -227,7 +227,7 @@ export default function Portal(){
           <p>{homeActions.length?'Há '+homeActions.length+' coisas que merecem atenção primeiro.':'O planeamento está em dia. Aproveitem para avançar numa das próximas etapas.'}</p>
         </div>
         <div className="home-date">
-          <span>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).replaceAll('/',' · ')}</span>
+          <span>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).split('/').join(' · ')}</span>
           <strong>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long'})}</strong>
         </div>
       </section>
