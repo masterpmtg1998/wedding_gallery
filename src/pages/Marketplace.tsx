@@ -25,10 +25,10 @@ export default function Marketplace({publicView=false}:{publicView?:boolean}){
 
     <section className="portal-card">
       <div className="marketplace-tools">
-        <div className="planner-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar produtos, ideias ou categorias"/></div>
+        <div className="planner-search"><Search size={16}/><input value={query} onChange={e=>{if(publicView)setQuery(e.target.value);else window.location.assign('/marketplace?q='+encodeURIComponent(e.target.value))}} onFocus={()=>{if(!publicView)window.location.assign('/marketplace')}} placeholder="Pesquisar produtos, ideias ou categorias"/></div>
         <div className="marketplace-categories">
-          <button className={category==='all'?'active':''} onClick={()=>setCategory('all')}>Tudo</button>
-          {topCategories.map(c=><button key={c.id} className={category===c.slug?'active':''} onClick={()=>setCategory(c.slug)}>{c.name}</button>)}
+          <button className={category==='all'?'active':''} onClick={()=>publicView?setCategory('all'):window.location.assign('/marketplace')}>Tudo</button>
+          {topCategories.map(c=><button key={c.id} className={category===c.slug?'active':''} onClick={()=>publicView?setCategory(c.slug):window.location.assign('/marketplace?category='+encodeURIComponent(c.slug))}>{c.name}</button>)}
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export default function Marketplace({publicView=false}:{publicView?:boolean}){
             <h3>{p.title}</h3>
             <p>{p.short_description||'Produto selecionado para o teu casamento.'}</p>
             <div className="marketplace-meta"><strong>{eur(Number(p.base_price))}</strong>{p.personalization_mode!=='none'&&<em>Personalizável</em>}</div>
-            <button className="primary">Ver produto</button>
+            <button className="primary" onClick={()=>window.location.assign('/marketplace/produto/'+p.slug)}>Ver produto</button>
           </div>
         </article>)}</div>
       ):<div className="marketplace-empty">
@@ -52,7 +52,7 @@ export default function Marketplace({publicView=false}:{publicView?:boolean}){
 
     <section className="portal-card marketplace-sell-cta">
       <div><span className="planner-kicker"><Store size={14}/> Para vendedores</span><h2>Fazes produtos para casamentos?</h2><p>Pequenos negócios, makers e parceiros de fulfillment podem vender no mesmo marketplace, mantendo a operação independente.</p></div>
-      <a href="/vender">Quero vender <ArrowRight size={15}/></a>
+      <a href={publicView?'/vender':'/marketplace'}>{publicView?'Quero vender':'Abrir marketplace'} <ArrowRight size={15}/></a>
     </section>
   </div>;
 }
