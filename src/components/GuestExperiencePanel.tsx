@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ExternalLink, Eye, EyeOff, Images, MapPin, QrCode, Smartphone } from 'lucide-react';
 import { readGuestExperienceSettings, updateGuestExperienceSettings, type GuestExperienceSettings } from '../api';
+import QRPrintStudio from './QRPrintStudio';
 
 type Props={wedding:any;onChanged?:(settings:any)=>void};
 
@@ -56,6 +57,8 @@ export default function GuestExperiencePanel({wedding,onChanged}:Props){
       </div>
       {message&&<p className="portal-message">{message}</p>}
     </section>
+
+    <QRPrintStudio wedding={wedding}/>
 
     <section className="portal-card guest-preview-links">
       <div className="portal-section-title"><div><span>Pré-visualizar</span><h2>Atalhos do espaço público</h2></div></div>
