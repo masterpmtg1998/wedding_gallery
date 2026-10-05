@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { CalendarDays, CheckCircle2, CircleDollarSign, FileText, HeartHandshake, Sparkles, UsersRound } from 'lucide-react';
 import { upsertPlannerJourneyState, type PlannerBudgetItem, type PlannerJourneyState, type PlannerTask, type PlannerVendor } from '../api';
+import MarketplaceSuggestions from './MarketplaceSuggestions';
 
 type Stage={slug:string;label:string;keys:string[]};
 type Props={
@@ -230,6 +231,8 @@ export default function GuidedJourney({weddingId,stage,tasks,vendors,budget,stat
         {!open.length&&<div className="planner-empty"><CheckCircle2/><strong>Sem ações pendentes.</strong><span>Esta etapa está em dia.</span></div>}
       </div>
     </section>}
+
+    <MarketplaceSuggestions stage={stage.slug}/>
 
     <div className="guided-footer-actions">
       {state?.status==='skipped'?<button onClick={()=>setApplicability('active')}>Reativar esta etapa</button>:cfg.optional!==false&&<button onClick={()=>setApplicability('skipped')}>Isto não se aplica ao nosso casamento</button>}
