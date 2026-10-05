@@ -284,3 +284,47 @@ export async function updatePlannerBudgetItem(id:string,patch:Partial<PlannerBud
   const {data,error}=await supabase.from('planner_budget_items').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
   if(error)throw error; return data as PlannerBudgetItem;
 }
+
+
+export type PlannerDecision={id:string;wedding_id:string;title:string;category:string;status:'open'|'decided'|'discarded';options:any[];decision:string|null;owner_label:string;due_date:string|null;notes:string|null};
+export type PlannerMeeting={id:string;wedding_id:string;title:string;starts_at:string;location:string|null;supplier_id:string|null;agenda:string|null;notes:string|null;status:'scheduled'|'done'|'cancelled'};
+export type PlannerPayment={id:string;wedding_id:string;supplier_id:string|null;budget_item_id:string|null;description:string;amount:number;due_date:string|null;paid_at:string|null;status:'pending'|'paid'|'cancelled';notes:string|null};
+export type PlannerDocument={id:string;wedding_id:string;title:string;category:string;supplier_id:string|null;storage_path:string|null;external_url:string|null;expires_at:string|null;signed:boolean;notes:string|null};
+export type PlannerScheduleItem={id:string;wedding_id:string;domain:'cerimonia'|'musica'|'decoracao'|'logistica'|'lua_de_mel'|'outro';title:string;starts_at:string|null;ends_at:string|null;location:string|null;responsible:string|null;status:'planned'|'confirmed'|'done'|'cancelled';details:string|null;sort_order:number};
+
+export async function getPlannerGuestStats(weddingId:string){
+  const {data,error}=await supabase.rpc('get_planner_guest_stats',{p_wedding_id:weddingId}); if(error)throw error; return data?.[0]??{total:0,accepted:0,declined:0,pending:0,maybe:0,seated:0,unseated:0};
+}
+export async function getManagedGuests(weddingId:string){
+  const {data,error}=await supabase.from('guests').select('id,name,side,group_name,entry_group,table_id,active,email,phone,rsvp_status,invitation_sent_at,rsvp_at,dietary_notes,guest_notes,seat_locked,seating_notes').eq('wedding_id',weddingId).eq('active',true).order('name');
+  if(error)throw error; return data??[];
+}
+export async function updateManagedGuest(id:number,patch:any){const {error}=await supabase.from('guests').update(patch).eq('id',id);if(error)throw error;}
+export async function getManagedTables(weddingId:string){
+  const {data,error}=await supabase.from('wedding_tables').select('id,name,sort_order,active,capacity,notes,locked').eq('wedding_id',weddingId).eq('active',true).order('sort_order');if(error)throw error;return data??[];
+}
+export async function createManagedTable(weddingId:string,name:string,capacity=10){
+  const {data,error}=await supabase.from('wedding_tables').insert({wedding_id:weddingId,name:name.trim(),capacity,active:true}).select('*').single();if(error)throw error;return data;
+}
+export async function assignGuestToTable(guestId:number,tableId:number|null){const {error}=await supabase.from('guests').update({table_id:tableId}).eq('id',guestId);if(error)throw error;}
+export async function getTableSuggestions(tableId:number,limit=8){const {data,error}=await supabase.rpc('suggest_guests_for_table',{p_table_id:tableId,p_limit:limit});if(error)throw error;return data??[];}
+
+export async function getPlannerDecisions(weddingId:string){const {data,error}=await supabase.from('planner_decisions').select('*').eq('wedding_id',weddingId).order('status').order('due_date',{ascending:true,nullsFirst:false});if(error)throw error;return (data??[]) as PlannerDecision[];}
+export async function createPlannerDecision(weddingId:string,title:string,category='geral'){const {data,error}=await supabase.from('planner_decisions').insert({wedding_id:weddingId,title:title.trim(),category}).select('*').single();if(error)throw error;return data as PlannerDecision;}
+export async function updatePlannerDecision(id:string,patch:Partial<PlannerDecision>){const {error}=await supabase.from('planner_decisions').update({...patch,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}
+
+export async function getPlannerMeetings(weddingId:string){const {data,error}=await supabase.from('planner_meetings').select('*').eq('wedding_id',weddingId).order('starts_at');if(error)throw error;return (data??[]) as PlannerMeeting[];}
+export async function createPlannerMeeting(weddingId:string,title:string,startsAt:string){const {data,error}=await supabase.from('planner_meetings').insert({wedding_id:weddingId,title:title.trim(),starts_at:startsAt}).select('*').single();if(error)throw error;return data as PlannerMeeting;}
+export async function updatePlannerMeeting(id:string,patch:Partial<PlannerMeeting>){const {error}=await supabase.from('planner_meetings').update({...patch,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}
+
+export async function getPlannerPayments(weddingId:string){const {data,error}=await supabase.from('planner_payments').select('*').eq('wedding_id',weddingId).order('status').order('due_date',{ascending:true,nullsFirst:false});if(error)throw error;return (data??[]) as PlannerPayment[];}
+export async function createPlannerPayment(weddingId:string,description:string,amount:number,dueDate:string|null){const {data,error}=await supabase.from('planner_payments').insert({wedding_id:weddingId,description:description.trim(),amount,due_date:dueDate}).select('*').single();if(error)throw error;return data as PlannerPayment;}
+export async function updatePlannerPayment(id:string,patch:Partial<PlannerPayment>){const {error}=await supabase.from('planner_payments').update(patch).eq('id',id);if(error)throw error;}
+
+export async function getPlannerDocuments(weddingId:string){const {data,error}=await supabase.from('planner_documents').select('*').eq('wedding_id',weddingId).order('created_at',{ascending:false});if(error)throw error;return (data??[]) as PlannerDocument[];}
+export async function createPlannerDocument(weddingId:string,title:string,category='outro'){const {data,error}=await supabase.from('planner_documents').insert({wedding_id:weddingId,title:title.trim(),category}).select('*').single();if(error)throw error;return data as PlannerDocument;}
+export async function updatePlannerDocument(id:string,patch:Partial<PlannerDocument>){const {error}=await supabase.from('planner_documents').update(patch).eq('id',id);if(error)throw error;}
+
+export async function getPlannerSchedule(weddingId:string){const {data,error}=await supabase.from('planner_schedule').select('*').eq('wedding_id',weddingId).order('domain').order('starts_at',{ascending:true,nullsFirst:false}).order('sort_order');if(error)throw error;return (data??[]) as PlannerScheduleItem[];}
+export async function createPlannerScheduleItem(weddingId:string,domain:PlannerScheduleItem['domain'],title:string){const {data,error}=await supabase.from('planner_schedule').insert({wedding_id:weddingId,domain,title:title.trim()}).select('*').single();if(error)throw error;return data as PlannerScheduleItem;}
+export async function updatePlannerScheduleItem(id:string,patch:Partial<PlannerScheduleItem>){const {error}=await supabase.from('planner_schedule').update({...patch,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}
