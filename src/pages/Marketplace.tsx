@@ -40,7 +40,7 @@ export default function Marketplace({publicView=false}:{publicView?:boolean}){
             <h3>{p.title}</h3>
             <p>{p.short_description||'Produto selecionado para o teu casamento.'}</p>
             <div className="marketplace-meta"><strong>{eur(Number(p.base_price))}</strong>{p.personalization_mode!=='none'&&<em>Personalizável</em>}</div>
-            <button className="primary" onClick={()=>window.location.assign('/marketplace/produto/'+p.slug)}>Ver produto</button>
+            <button className="primary" onClick={()=>window.location.assign('/marketplace?product='+encodeURIComponent(p.slug))}>Ver produto</button>
           </div>
         </article>)}</div>
       ):<div className="marketplace-empty">
