@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CheckCircle2, ChevronRight, MapPin, Plus, Scale, Sparkles, UsersRound } from 'lucide-react';
 import { createVenueOption, createVenueVisit, getVenueWorkspace, saveVenueRequirements, updateVenueOption, upsertVenuePricing, type VenueOption } from '../api';
+import MarketplaceSuggestions from './MarketplaceSuggestions';
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
 
@@ -118,6 +119,8 @@ export default function VenueJourney({weddingId}:{weddingId:string}){
         </div>
       </article>)}</div>
     </section>}
+
+    <MarketplaceSuggestions stage="quinta"/>
   </div>;
 }
 
