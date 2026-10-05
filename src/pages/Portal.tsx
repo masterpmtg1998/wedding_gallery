@@ -174,7 +174,7 @@ export default function Portal(){
     {tab==='convidados'&&<PlannerSuite weddingId={wedding.id} mode="guests"/>}
     {tab==='mesas'&&<PlannerSuite weddingId={wedding.id} mode="tables"/>}
 
-    {tab==='loja'&&<Marketplace/>}
+    {tab==='loja'&&<><div className="marketplace-public-linkbar"><span>Este catálogo também está disponível publicamente, sem login.</span><a href="/marketplace" target="_blank" rel="noreferrer">Abrir marketplace público</a></div><Marketplace/></>}
 
     {tab==='fornecedores'&&<section className="portal-card">
       <div className="portal-section-title"><div><span>Rede de fornecedores</span><h2>Fornecedores</h2><p>Pesquisa, propostas, adjudicação, próximos passos e pagamentos.</p></div><HeartHandshake size={24}/></div>
