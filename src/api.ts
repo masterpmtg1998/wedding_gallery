@@ -223,3 +223,64 @@ export async function cancelWeddingInvitation(weddingId:string,email:string){
   const {error}=await supabase.rpc('cancel_wedding_invitation',{p_wedding_id:weddingId,p_email:email});
   if(error)throw error;
 }
+
+
+export type PlannerTask={
+  id:string; wedding_id:string; title:string; category:string; status:'todo'|'doing'|'done';
+  priority:'low'|'normal'|'high'|'urgent'; due_date:string|null; owner_label:'pedro'|'tania'|'ambos'|'outro';
+  supplier_name:string|null; budget_amount:number|null; notes:string|null; sort_order:number;
+};
+export type PlannerVendor={
+  id:string; wedding_id:string; category:string; name:string; contact_name:string|null; email:string|null; phone:string|null;
+  website:string|null; status:'researching'|'contacted'|'proposal'|'booked'|'paid'|'rejected';
+  quoted_amount:number|null; contracted_amount:number|null; paid_amount:number; next_action:string|null; next_action_date:string|null; notes:string|null;
+};
+export type PlannerBudgetItem={
+  id:string; wedding_id:string; category:string; description:string; supplier_id:string|null; budgeted:number;
+  contracted:number|null; paid:number; due_date:string|null; status:'planned'|'contracted'|'partial'|'paid'|'cancelled'; notes:string|null;
+};
+
+export async function getPlannerTasks(weddingId:string){
+  const {data,error}=await supabase.from('planner_tasks').select('*').eq('wedding_id',weddingId).order('status').order('due_date',{ascending:true,nullsFirst:false}).order('sort_order');
+  if(error)throw error; return (data??[]) as PlannerTask[];
+}
+export async function createPlannerTask(weddingId:string,input:Partial<PlannerTask>&{title:string}){
+  const {data:{user}}=await supabase.auth.getUser();
+  const {data,error}=await supabase.from('planner_tasks').insert({
+    wedding_id:weddingId,title:input.title.trim(),category:input.category||'geral',status:input.status||'todo',
+    priority:input.priority||'normal',due_date:input.due_date||null,owner_label:input.owner_label||'ambos',
+    supplier_name:input.supplier_name||null,budget_amount:input.budget_amount??null,notes:input.notes||null,created_by:user?.id??null
+  }).select('*').single();
+  if(error)throw error; return data as PlannerTask;
+}
+export async function updatePlannerTask(id:string,patch:Partial<PlannerTask>){
+  const {data,error}=await supabase.from('planner_tasks').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
+  if(error)throw error; return data as PlannerTask;
+}
+export async function deletePlannerTask(id:string){const {error}=await supabase.from('planner_tasks').delete().eq('id',id);if(error)throw error;}
+
+export async function getPlannerVendors(weddingId:string){
+  const {data,error}=await supabase.from('planner_vendors').select('*').eq('wedding_id',weddingId).order('name');
+  if(error)throw error; return (data??[]) as PlannerVendor[];
+}
+export async function createPlannerVendor(weddingId:string,input:{name:string;category?:string;status?:PlannerVendor['status'];contracted_amount?:number|null;paid_amount?:number;next_action?:string|null;next_action_date?:string|null}){
+  const {data,error}=await supabase.from('planner_vendors').insert({wedding_id:weddingId,name:input.name.trim(),category:input.category||'outro',status:input.status||'researching',contracted_amount:input.contracted_amount??null,paid_amount:input.paid_amount??0,next_action:input.next_action||null,next_action_date:input.next_action_date||null}).select('*').single();
+  if(error)throw error; return data as PlannerVendor;
+}
+export async function updatePlannerVendor(id:string,patch:Partial<PlannerVendor>){
+  const {data,error}=await supabase.from('planner_vendors').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
+  if(error)throw error; return data as PlannerVendor;
+}
+
+export async function getPlannerBudget(weddingId:string){
+  const {data,error}=await supabase.from('planner_budget_items').select('*').eq('wedding_id',weddingId).order('category').order('description');
+  if(error)throw error; return (data??[]) as PlannerBudgetItem[];
+}
+export async function createPlannerBudgetItem(weddingId:string,input:{description:string;category?:string;budgeted?:number;contracted?:number|null;paid?:number;due_date?:string|null;status?:PlannerBudgetItem['status']}){
+  const {data,error}=await supabase.from('planner_budget_items').insert({wedding_id:weddingId,description:input.description.trim(),category:input.category||'outro',budgeted:input.budgeted??0,contracted:input.contracted??null,paid:input.paid??0,due_date:input.due_date||null,status:input.status||'planned'}).select('*').single();
+  if(error)throw error; return data as PlannerBudgetItem;
+}
+export async function updatePlannerBudgetItem(id:string,patch:Partial<PlannerBudgetItem>){
+  const {data,error}=await supabase.from('planner_budget_items').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
+  if(error)throw error; return data as PlannerBudgetItem;
+}
