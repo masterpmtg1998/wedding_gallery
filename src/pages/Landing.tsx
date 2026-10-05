@@ -3,6 +3,7 @@ import { Camera, Images, MapPin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { clearGuestId, getGuestId } from '../lib/guest';
 import { getWeddingSlug, weddingPath } from '../lib/wedding';
+import { readGuestExperienceSettings } from '../api';
 
 type Slide={url:string;focal_x:number;focal_y:number};
 const fallbackSlides:Slide[]=['/couple/1.svg','/couple/2.svg','/couple/3.svg','/couple/4.svg'].map(url=>({url,focal_x:50,focal_y:50}));
@@ -70,6 +71,7 @@ export default function Landing(){
   },[slides]);
 
   const currentSlide=useMemo(()=>Math.min(slide,slides.length-1),[slide,slides.length]);
+  const guestSettings=readGuestExperienceSettings(wedding?.settings);
 
   return <main className="landing">
     <div className="landing-slides">
@@ -96,14 +98,14 @@ export default function Landing(){
 
       <p>Vive, fotografa e partilha connosco os momentos que só tu viste.</p>
 
-      <button className="landing-cta" onClick={()=>nav(weddingPath('/adicionar'))}>
+      {guestSettings.uploads&&<button className="landing-cta" onClick={()=>nav(weddingPath('/adicionar'))}>
         <Camera size={19}/>Publicar fotografias
-      </button>
+      </button>}
 
-      <div className="landing-actions">
-        <Link href={weddingPath('/album')} className="landing-secondary"><Images size={16}/>Álbum</Link>
-        <Link href={weddingPath('/mesas')} className="landing-secondary"><MapPin size={16}/>Mesas</Link>
-      </div>
+      {(guestSettings.album||guestSettings.tables)&&<div className="landing-actions">
+        {guestSettings.album&&<Link href={weddingPath('/album')} className="landing-secondary"><Images size={16}/>Álbum</Link>}
+        {guestSettings.tables&&<Link href={weddingPath('/mesas')} className="landing-secondary"><MapPin size={16}/>Mesas</Link>}
+      </div>}
 
       <div className="slide-dots">{slides.map((_,i)=><button key={i} className={currentSlide===i?'active':''} onClick={()=>setSlide(i)} aria-label={'Foto '+(i+1)}/>)}</div>
     </div>
