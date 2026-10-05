@@ -30,6 +30,7 @@ export default function App(){
   <Route path="/" component={CommercialLanding}/>
   <Route path="/marketplace"><Suspense fallback={<Loading/>}><PublicMarketplace/></Suspense></Route>
   <Route path="/loja"><Suspense fallback={<Loading/>}><PublicMarketplace/></Suspense></Route>
+  <Route path="/portal/:section/:subsection"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
   <Route path="/portal/:section"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
   <Route path="/portal"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
   <Route path="/vender"><Suspense fallback={<Loading/>}><SellerOnboarding/></Suspense></Route>
