@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, HeartHandshake, ImagePlus, LogOut, Save, Sparkles, Upload, UsersRound, Menu, X, Home, CalendarRange, Store, ExternalLink, MapPin, Camera, UtensilsCrossed, Music2, Palette, Mail, Gem, Plane, Church, CreditCard } from 'lucide-react';
+import { CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, HeartHandshake, ImagePlus, LogOut, Save, Sparkles, Upload, UsersRound, Menu, X, Home, CalendarRange, Store, ExternalLink, MapPin, Camera, UtensilsCrossed, Music2, Palette, Mail, Gem, Plane, Church, CreditCard, ChevronRight, Clock3 } from 'lucide-react';
 import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
   getManagedLandingMedia, getMyWeddings, getPlannerBudget, getPlannerTasks, getPlannerVendors, getWeddingTeam,
   inviteWeddingMember, updateLandingFocal, updatePlannerBudgetItem, updatePlannerTask, updatePlannerVendor,
-  uploadLandingMedia, seedPlannerDefaults, seedWeddingBudgetDefaults, setPlannerTaskTreeStatus, getPlannerJourneyStates, type PlannerJourneyState, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
+  uploadLandingMedia, seedPlannerDefaults, seedWeddingBudgetDefaults, setPlannerTaskTreeStatus, getPlannerJourneyStates, getPlannerGuestStats, type PlannerJourneyState, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
 } from '../api';
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
@@ -68,7 +68,7 @@ export default function Portal(){
     navigate('/portal/'+base+(nextSub?'/'+nextSub:''));
     setDrawerOpen(false);
   };
-  const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]); const [journeyStates,setJourneyStates]=useState<PlannerJourneyState[]>([]);
+  const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]); const [journeyStates,setJourneyStates]=useState<PlannerJourneyState[]>([]); const [guestStats,setGuestStats]=useState<any>({total:0,accepted:0,declined:0,pending:0,maybe:0,seated:0,unseated:0});
   const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [taskFilter,setTaskFilter]=useState<'pending'|'done'|'all'>('pending'); const [vendorName,setVendorName]=useState('');
   const [budgetDesc,setBudgetDesc]=useState(''); const [budgetValue,setBudgetValue]=useState('');
 
@@ -79,9 +79,9 @@ export default function Portal(){
       const ws=session?await getMyWeddings():[]; const w=ws[0]??null; setWedding(w);
       if(w){
         try{await Promise.all([seedPlannerDefaults(w.id),seedWeddingBudgetDefaults(w.id)])}catch{}
-        const [media,members,t,v,b,j]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id),getPlannerTasks(w.id),getPlannerVendors(w.id),getPlannerBudget(w.id),getPlannerJourneyStates(w.id)]);
-        setItems(media as Item[]); setTeam(members); setTasks(t); setVendors(v); setBudget(b); setJourneyStates(j);
-      }else{setItems([]);setTeam([]);setTasks([]);setVendors([]);setBudget([]);setJourneyStates([])}
+        const [media,members,t,v,b,j,g]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id),getPlannerTasks(w.id),getPlannerVendors(w.id),getPlannerBudget(w.id),getPlannerJourneyStates(w.id),getPlannerGuestStats(w.id)]);
+        setItems(media as Item[]); setTeam(members); setTasks(t); setVendors(v); setBudget(b); setJourneyStates(j); setGuestStats(g);
+      }else{setItems([]);setTeam([]);setTasks([]);setVendors([]);setBudget([]);setJourneyStates([]);setGuestStats({total:0,accepted:0,declined:0,pending:0,maybe:0,seated:0,unseated:0})}
     }catch(e:any){setMessage(e.message||'Não foi possível abrir o portal.')} finally{setLoading(false)}
   }
   useEffect(()=>{load();const {data}=supabase.auth.onAuthStateChange(()=>setTimeout(load,0));return()=>data.subscription.unsubscribe()},[]);
@@ -147,6 +147,13 @@ export default function Portal(){
     return relevant.length>0&&relevant.every(t=>t.status==='done');
   };
   const sortedPlanningStages=[...planningStages].sort((a,b)=>Number(stageIsDone(a))-Number(stageIsDone(b)));
+  const taskStage=(task:PlannerTask)=>{
+    const parent=task.parent_id?tasks.find(p=>p.id===task.parent_id):task;
+    return planningStages.find(s=>s.keys.includes(parent?.template_key||''));
+  };
+  const homeActions=priorities.map(t=>({task:t,stage:taskStage(t)})).slice(0,3);
+  const waitingJourneys=journeyStates.filter(j=>j.status==='waiting').slice(0,3);
+  const activeJourneys=sortedPlanningStages.filter(s=>!stageIsDone(s)).slice(0,4);
   const bottomSection:Section=section==='equipa'?'dashboard':section;
 
   return <main className="portal-shell"><div className="portal-wrap">
@@ -212,20 +219,44 @@ export default function Portal(){
       </nav>
     </aside>
 
-    {section==='dashboard'&&<div className="planner-dashboard">
-      <section className="planner-hero portal-card">
-        <div><span className="planner-kicker"><Sparkles size={14}/> Assistente de planeamento</span><h2>{countdown!=null&&countdown>=0?'Faltam '+countdown+' dias':'O grande dia chegou'}</h2><p>O objetivo é manter-vos focados apenas no que precisa de atenção agora.</p></div>
-        <div className="planner-score"><strong>{leafTasks.length?Math.round((completed/leafTasks.length)*100):0}%</strong><span>tarefas concluídas</span></div>
+    {section==='dashboard'&&<div className="home-assistant">
+      <section className="portal-card home-hero">
+        <div>
+          <span className="planner-kicker"><Sparkles size={14}/> O vosso casamento, agora</span>
+          <h2>{countdown!=null&&countdown>=0?countdown+' dias para o grande dia':'Hoje é o grande dia'}</h2>
+          <p>{homeActions.length?'Há '+homeActions.length+' coisas que merecem atenção primeiro.':'O planeamento está em dia. Aproveitem para avançar numa das próximas etapas.'}</p>
+        </div>
+        <div className="home-date">
+          <span>04 · 09 · 2027</span>
+          <strong>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long'})}</strong>
+        </div>
       </section>
-      <div className="planner-metrics">
-        <button className="planner-metric" onClick={()=>go('planeamento','cronograma')}><ClipboardList/><span>Pendentes</span><strong>{openTasks.length}</strong></button>
-        <button className="planner-metric" onClick={()=>go('gestao','fornecedores')}><HeartHandshake/><span>Fornecedores</span><strong>{vendors.filter(v=>['booked','paid'].includes(v.status)).length}/{vendors.length}</strong></button>
-        <button className="planner-metric" onClick={()=>go('gestao','orcamento')}><CircleDollarSign/><span>Contratado</span><strong>{eur(totalContracted)}</strong><small>{eur(totalPaid)} pago</small></button>
-        <div className="planner-metric"><CalendarDays/><span>Data</span><strong>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>
-      </div>
-      <section className="portal-card">
-        <div className="portal-section-title"><div><span>Prioridades</span><h2>O que eu trataria a seguir</h2><p>Ordenado por urgência e prazo.</p></div><Sparkles size={24}/></div>
-        <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>go('planeamento','cronograma')} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'} · {t.owner_label==='ambos'?'Ambos':t.owner_label}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>Adiciona tarefas para eu começar a priorizar o planeamento.</span></div>}</div>
+
+      <section className="home-now">
+        <div className="home-section-head"><div><span>Agora</span><h2>Continuar daqui</h2></div><button onClick={()=>go('planeamento','agora')}>Ver planeamento <ChevronRight size={14}/></button></div>
+        <div className="home-action-grid">
+          {homeActions.length?homeActions.map(({task,stage},i)=><button key={task.id} className={'home-action-card '+(i===0?'primary':'')} onClick={()=>go('planeamento',stage?.slug||'cronograma')}>
+            <div className="home-action-icon">{stage?(()=>{const Icon=stage.icon;return <Icon/>})():<ClipboardList/>}</div>
+            <div><span>{stage?.label||'Planeamento'}</span><strong>{task.title}</strong><small>{task.due_date?'Até '+new Date(task.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}{task.priority==='urgent'?' · Urgente':''}</small></div>
+            <ChevronRight/>
+          </button>):<div className="portal-card planner-empty home-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>Podem continuar pela próxima etapa do casamento.</span></div>}
+        </div>
+      </section>
+
+      {waitingJourneys.length>0&&<section className="portal-card home-waiting">
+        <div className="home-section-head"><div><span>À espera</span><h2>Não depende de vocês agora</h2></div></div>
+        <div>{waitingJourneys.map(j=>{const st=planningStages.find(s=>s.slug===j.journey_key);return <button key={j.id} onClick={()=>st&&go('planeamento',st.slug)}><Clock3/><div><strong>{st?.label||j.journey_key}</strong><small>{j.waiting_for||'A aguardar resposta ou confirmação'}</small></div><ChevronRight/></button>})}</div>
+      </section>}
+
+      <section className="home-overview-grid">
+        <button className="portal-card home-overview" onClick={()=>go('convidados','lista')}><UsersRound/><div><span>Convidados</span><strong>{guestStats.total}</strong><small>{guestStats.accepted} confirmados · {guestStats.pending} pendentes</small></div></button>
+        <button className="portal-card home-overview" onClick={()=>go('gestao','orcamento')}><CircleDollarSign/><div><span>Orçamento</span><strong>{eur(totalContracted)}</strong><small>{eur(totalPaid)} pago</small></div></button>
+        <button className="portal-card home-overview" onClick={()=>go('gestao','fornecedores')}><HeartHandshake/><div><span>Fornecedores</span><strong>{vendors.filter(v=>['booked','paid'].includes(v.status)).length}</strong><small>adjudicados de {vendors.length}</small></div></button>
+      </section>
+
+      <section className="portal-card home-next-stages">
+        <div className="home-section-head"><div><span>A seguir</span><h2>Etapas em aberto</h2></div><button onClick={()=>setDrawerOpen(true)}>Ver todas <Menu size={14}/></button></div>
+        <div className="home-stage-strip">{activeJourneys.map(stage=>{const Icon=stage.icon;return <button key={stage.slug} onClick={()=>go('planeamento',stage.slug)}><Icon/><span>{stage.label}</span><ChevronRight/></button>})}</div>
       </section>
     </div>}
 
