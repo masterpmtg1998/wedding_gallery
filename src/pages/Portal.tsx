@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, HeartHandshake, ImagePlus, LogOut, Save, Sparkles, Upload, UsersRound, Menu, X, Home, CalendarRange, Store, ExternalLink } from 'lucide-react';
+import { CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, HeartHandshake, ImagePlus, LogOut, Save, Sparkles, Upload, UsersRound, Menu, X, Home, CalendarRange, Store, ExternalLink, MapPin, Camera, UtensilsCrossed, Music2, Palette, Mail, Gem, Plane, Church, CreditCard } from 'lucide-react';
 import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
   getManagedLandingMedia, getMyWeddings, getPlannerBudget, getPlannerTasks, getPlannerVendors, getWeddingTeam,
@@ -17,6 +17,23 @@ type Section='dashboard'|'planeamento'|'convidados'|'gestao'|'equipa'|'specialda
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
 const dayDiff=(iso:string)=>Math.ceil((new Date(iso+'T12:00:00').getTime()-Date.now())/86400000);
+
+
+const planningStages=[
+  {slug:'quinta',label:'Espaço / Quinta',keys:['venue'],icon:MapPin},
+  {slug:'fotografia',label:'Fotografia & vídeo',keys:['photo'],icon:Camera},
+  {slug:'catering',label:'Catering & menu',keys:['catering'],icon:UtensilsCrossed},
+  {slug:'musica',label:'Música',keys:['music','music_final'],icon:Music2},
+  {slug:'decoracao',label:'Decoração',keys:['decor','decor_final'],icon:Palette},
+  {slug:'convites',label:'Convites',keys:['save_date','invites'],icon:Mail},
+  {slug:'aliancas',label:'Alianças',keys:['rings'],icon:Gem},
+  {slug:'cerimonia',label:'Cerimónia',keys:['ceremony'],icon:Church},
+  {slug:'lua-de-mel',label:'Lua de mel',keys:['honeymoon'],icon:Plane},
+  {slug:'rsvp',label:'Fechar RSVP',keys:['rsvp'],icon:UsersRound},
+  {slug:'seating',label:'Seating plan',keys:['seating'],icon:UsersRound},
+  {slug:'pagamentos',label:'Pagamentos finais',keys:['payments_final'],icon:CreditCard},
+  {slug:'fecho',label:'Fecho do casamento',keys:['supplier_final','day_timeline','final_docs'],icon:Sparkles},
+] as const;
 
 export default function Portal(){
   const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [mode,setMode]=useState<AuthMode>('login');
@@ -40,7 +57,7 @@ export default function Portal(){
   const legacyTarget=legacy[pathSection];
   const section:Section=legacyTarget?.section||sectionMap[pathSection]||'dashboard';
   const sub=legacyTarget?.sub||pathSub||(
-    section==='planeamento'?'cronograma':
+    section==='planeamento'?'agora':
     section==='convidados'?'lista':
     section==='gestao'?'fornecedores':''
   );
@@ -117,6 +134,10 @@ export default function Portal(){
   </section></main>;
 
   const sectionTitle:Record<Section,string>={dashboard:'Assistente',planeamento:'Planeamento',convidados:'Convidados',gestao:'Gestão',specialday:'Special Day',equipa:'Equipa'};
+  const selectedStage=planningStages.find(s=>s.slug===sub);
+  const selectedStageParents=selectedStage?taskParents.filter(t=>selectedStage.keys.includes((t.template_key||'') as any)):[];
+  const selectedStageTasks=selectedStageParents.flatMap(parent=>[parent,...tasks.filter(t=>t.parent_id===parent.id)]);
+  const bottomSection:Section=section==='equipa'?'dashboard':section;
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head portal-head-compact">
@@ -126,24 +147,58 @@ export default function Portal(){
     </header>
 
     <div className={'portal-drawer-backdrop '+(drawerOpen?'open':'')} onClick={()=>setDrawerOpen(false)}/>
-    <aside className={'portal-drawer '+(drawerOpen?'open':'')} aria-hidden={!drawerOpen}>
-      <div className="portal-drawer-head"><div><span>Wedding Planner</span><strong>{wedding.couple_names}</strong></div><button onClick={()=>setDrawerOpen(false)}><X size={20}/></button></div>
+    <aside className={'portal-drawer contextual '+(drawerOpen?'open':'')} aria-hidden={!drawerOpen}>
+      <div className="portal-drawer-head"><div><span>{sectionTitle[section]}</span><strong>{wedding.couple_names}</strong></div><button onClick={()=>setDrawerOpen(false)}><X size={20}/></button></div>
       <nav className="portal-drawer-nav">
-        <div className="portal-nav-group"><span>Principal</span>
-          <button className={section==='dashboard'?'active':''} onClick={()=>go('dashboard')}><Home/><div><strong>Assistente</strong><small>Resumo e prioridades</small></div></button>
-        </div>
-        <div className="portal-nav-group"><span>Organização</span>
-          <button className={section==='planeamento'?'active':''} onClick={()=>go('planeamento','cronograma')}><CalendarRange/><div><strong>Planeamento</strong><small>Cronograma, tarefas e decisões</small></div></button>
-          <button className={section==='convidados'?'active':''} onClick={()=>go('convidados','lista')}><UsersRound/><div><strong>Convidados</strong><small>RSVP e mesas</small></div></button>
-          <button className={section==='gestao'?'active':''} onClick={()=>go('gestao','fornecedores')}><HeartHandshake/><div><strong>Gestão</strong><small>Fornecedores e orçamento</small></div></button>
-        </div>
-        <div className="portal-nav-group"><span>Experiência</span>
-          <button className={section==='specialday'?'active':''} onClick={()=>go('specialday')}><Sparkles/><div><strong>Special Day</strong><small>Site, QR, álbum e publicação</small></div></button>
-          <a href="/marketplace"><Store/><div><strong>Marketplace</strong><small>Loja pública</small></div><ExternalLink size={14}/></a>
-        </div>
-        <div className="portal-nav-group"><span>Conta</span>
-          <button className={section==='equipa'?'active':''} onClick={()=>go('equipa')}><UsersRound/><div><strong>Equipa</strong><small>Noivos e co-gestores</small></div></button>
-        </div>
+        {section==='dashboard'&&<>
+          <div className="portal-nav-group"><span>Início</span>
+            <button className={pathSection==='assistente'?'active':''} onClick={()=>go('dashboard')}><Home/><div><strong>Assistente</strong><small>Agora, prioridades e próximos passos</small></div></button>
+          </div>
+          <div className="portal-nav-group"><span>Conta & extras</span>
+            <button className={section==='equipa'?'active':''} onClick={()=>go('equipa')}><UsersRound/><div><strong>Equipa</strong><small>Noivos e co-gestores</small></div></button>
+            <a href="/marketplace"><Store/><div><strong>Marketplace</strong><small>Abrir a loja pública</small></div><ExternalLink size={14}/></a>
+          </div>
+        </>}
+
+        {section==='planeamento'&&<>
+          <div className="portal-nav-group"><span>Planeamento</span>
+            <button className={sub==='agora'?'active':''} onClick={()=>go('planeamento','agora')}><Sparkles/><div><strong>Agora</strong><small>O que merece atenção neste momento</small></div></button>
+            <button className={sub==='cronograma'?'active':''} onClick={()=>go('planeamento','cronograma')}><CalendarRange/><div><strong>Cronograma completo</strong><small>Todos os marcos por data</small></div></button>
+            <button className={sub==='organizacao'?'active':''} onClick={()=>go('planeamento','organizacao')}><ClipboardList/><div><strong>Organização</strong><small>Decisões, reuniões e documentos</small></div></button>
+          </div>
+          <div className="portal-nav-group planning-stage-nav"><span>Etapas do casamento</span>
+            {planningStages.map(stage=>{
+              const Icon=stage.icon;
+              const parents=taskParents.filter(t=>stage.keys.includes((t.template_key||'') as any));
+              const children=parents.flatMap(p=>tasks.filter(t=>t.parent_id===p.id));
+              const relevant=children.length?children:parents;
+              const done=relevant.filter(t=>t.status==='done').length;
+              return <button key={stage.slug} className={sub===stage.slug?'active':''} onClick={()=>go('planeamento',stage.slug)}>
+                <Icon/><div><strong>{stage.label}</strong><small>{relevant.length?done+'/'+relevant.length+' concluídos':'Preparar etapa'}</small></div>{relevant.length>0&&<span className="stage-nav-progress">{Math.round(done/relevant.length*100)}%</span>}
+              </button>
+            })}
+          </div>
+        </>}
+
+        {section==='convidados'&&<div className="portal-nav-group"><span>Convidados</span>
+          <button className={sub==='lista'?'active':''} onClick={()=>go('convidados','lista')}><UsersRound/><div><strong>Lista & RSVP</strong><small>Convidados, respostas e restrições</small></div></button>
+          <button className={sub==='mesas'?'active':''} onClick={()=>go('convidados','mesas')}><MapPin/><div><strong>Mesas</strong><small>Seating plan e capacidades</small></div></button>
+        </div>}
+
+        {section==='gestao'&&<div className="portal-nav-group"><span>Gestão</span>
+          <button className={sub==='fornecedores'?'active':''} onClick={()=>go('gestao','fornecedores')}><HeartHandshake/><div><strong>Fornecedores</strong><small>Pesquisa, propostas e contratos</small></div></button>
+          <button className={sub==='orcamento'?'active':''} onClick={()=>go('gestao','orcamento')}><CircleDollarSign/><div><strong>Orçamento</strong><small>Previsto, contratado e pago</small></div></button>
+        </div>}
+
+        {section==='specialday'&&<div className="portal-nav-group"><span>Special Day</span>
+          <button className="active" onClick={()=>go('specialday')}><Sparkles/><div><strong>Experiência dos convidados</strong><small>Publicação, QR, álbum e site</small></div></button>
+          <a href={'/w/'+wedding.slug} target="_blank" rel="noreferrer"><ExternalLink/><div><strong>Ver página pública</strong><small>Abrir como convidado</small></div></a>
+        </div>}
+
+        {section==='equipa'&&<div className="portal-nav-group"><span>Conta</span>
+          <button className="active" onClick={()=>go('equipa')}><UsersRound/><div><strong>Equipa</strong><small>Noivos e co-gestores</small></div></button>
+          <button onClick={()=>go('dashboard')}><Home/><div><strong>Voltar ao Assistente</strong><small>Página inicial do casamento</small></div></button>
+        </div>}
       </nav>
     </aside>
 
@@ -165,10 +220,16 @@ export default function Portal(){
     </div>}
 
     {section==='planeamento'&&<div className="portal-section-shell">
-      <div className="portal-subnav">
-        <button className={sub==='cronograma'?'active':''} onClick={()=>go('planeamento','cronograma')}>Cronograma</button>
-        <button className={sub==='organizacao'?'active':''} onClick={()=>go('planeamento','organizacao')}>Organização</button>
-      </div>
+      {sub==='agora'&&<div className="planning-now">
+        <section className="portal-card planner-hero">
+          <div><span className="planner-kicker"><Sparkles size={14}/> Planeamento guiado</span><h2>O que precisa da vossa atenção agora</h2><p>As etapas podem decorrer em simultâneo. Abre o menu para navegar por cada journey do casamento.</p></div>
+          <div className="planner-score"><strong>{openTasks.length}</strong><span>ações pendentes</span></div>
+        </section>
+        <section className="portal-card">
+          <div className="portal-section-title"><div><span>Próximas ações</span><h2>Continuar a organizar</h2><p>Prioridade e prazo, sem mostrar o casamento inteiro de uma vez.</p></div></div>
+          <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>{const parent=t.parent_id?tasks.find(p=>p.id===t.parent_id):t;const stage=planningStages.find(s=>s.keys.includes((parent?.template_key||'') as any));go('planeamento',stage?.slug||'cronograma')}} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>O planeamento está em dia.</span></div>}</div>
+        </section>
+      </div>}
       {sub==='cronograma'&&<section className="portal-card task-timeline-card">
       <div className="portal-section-title"><div><span>Cronograma</span><h2>Tarefas & subtarefas</h2><p>Cada objetivo principal abre o respetivo processo. Por defeito, o que está concluído fica oculto.</p></div><ClipboardList size={24}/></div>
       <div className="task-toolbar">
@@ -218,6 +279,24 @@ export default function Portal(){
       </div>
     </section>}
       {sub==='organizacao'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
+      {selectedStage&&<section className="portal-card journey-stage-card">
+        <div className="portal-section-title">
+          <div><span>Etapa do casamento</span><h2>{selectedStage.label}</h2><p>Um workflow contínuo: decisões, ações, fornecedores, documentos e pagamentos desta área.</p></div>
+          <button className="journey-open-menu" onClick={()=>setDrawerOpen(true)}><Menu size={16}/> Ver etapas</button>
+        </div>
+        {selectedStageTasks.length?<div className="journey-stage-flow">
+          {selectedStageParents.map(parent=>{
+            const children=tasks.filter(t=>t.parent_id===parent.id).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
+            const relevant=children.length?children:[parent];
+            const done=relevant.filter(t=>t.status==='done').length;
+            return <article className="journey-milestone" key={parent.id}>
+              <div className="journey-milestone-head"><div><strong>{parent.title}</strong><span>{done}/{relevant.length} concluídos</span></div><span className={'journey-status '+parent.status}>{parent.status==='done'?'Concluído':parent.status==='doing'?'Em curso':'A fazer'}</span></div>
+              <div className="journey-progress"><span style={{width:(relevant.length?done/relevant.length*100:0)+'%'}}/></div>
+              {children.length>0&&<div className="journey-actions">{children.map(child=><button key={child.id} className={child.status==='done'?'done':''} onClick={async()=>{await setPlannerTaskTreeStatus(child.id,child.status==='done'?'todo':'done');setTasks(await getPlannerTasks(wedding.id))}}><span>{child.status==='done'?<CheckCircle2 size={18}/>:<i/>}</span><div><strong>{child.title}</strong><small>{child.due_date?new Date(child.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div></button>)}</div>}
+            </article>
+          })}
+        </div>:<div className="planner-empty"><Sparkles/><strong>Esta etapa ainda não tem ações configuradas.</strong><span>O motor de journeys vai poder adaptar os passos às escolhas do casal.</span></div>}
+      </section>}
     </div>}
 
     {section==='convidados'&&<div className="portal-section-shell">
@@ -259,5 +338,13 @@ export default function Portal(){
       <div className="branding-grid">{[1,2,3,4].map(slot=>{const item=items.find(i=>i.slot===slot);return <article className="branding-card" key={slot}><div className="branding-preview">{item?<img src={item.url} style={{objectPosition:item.focal_x+'% '+item.focal_y+'%'}}/>:<span>Foto {slot}</span>}</div><div className="branding-controls"><label className="upload-control"><Upload size={15}/>{item?'Substituir original':'Carregar original'}<input type="file" accept="image/*,.heic,.heif" onChange={e=>replace(slot,e.target.files?.[0])}/></label>{item&&<><label>Horizontal <input type="range" min="0" max="100" value={item.focal_x} onChange={e=>focal(item,Number(e.target.value),item.focal_y)}/></label><label>Vertical <input type="range" min="0" max="100" value={item.focal_y} onChange={e=>focal(item,item.focal_x,Number(e.target.value))}/></label></>}</div></article>})}</div>
       {message&&<p className="portal-message"><Save size={14}/>{message}</p>}
     </section></>}
+
+    <nav className="portal-bottom-nav" aria-label="Navegação principal">
+      <button className={bottomSection==='dashboard'?'active':''} onClick={()=>go('dashboard')}><Home/><span>Início</span></button>
+      <button className={bottomSection==='planeamento'?'active':''} onClick={()=>go('planeamento','agora')}><CalendarRange/><span>Planear</span></button>
+      <button className={bottomSection==='convidados'?'active':''} onClick={()=>go('convidados','lista')}><UsersRound/><span>Convidados</span></button>
+      <button className={bottomSection==='gestao'?'active':''} onClick={()=>go('gestao','fornecedores')}><CircleDollarSign/><span>Gestão</span></button>
+      <button className={bottomSection==='specialday'?'active':''} onClick={()=>go('specialday')}><Sparkles/><span>Special Day</span></button>
+    </nav>
   </div></main>;
 }
