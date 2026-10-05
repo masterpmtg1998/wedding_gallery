@@ -369,3 +369,20 @@ export async function updateGuestExperienceSettings(weddingId:string,value:Guest
   });
   if(error)throw error; return data;
 }
+
+
+export type MarketplaceCategory={id:string;parent_id:string|null;slug:string;name:string;description:string|null;sort_order:number};
+export type MarketplaceProduct={
+  id:string;slug:string;title:string;short_description:string|null;base_price:number;compare_at_price:number|null;currency:string;
+  lead_time_days:number|null;min_order_qty:number;personalization_mode:'none'|'text'|'image'|'configurable';
+  featured:boolean;attributes:any;category_slug:string|null;category_name:string|null;seller_id:string;seller_name:string;
+  seller_type:'dropship'|'maker';fulfillment_model:'dropship'|'seller_fulfilled'
+};
+export async function getMarketplaceCategories(){
+  const {data,error}=await supabase.from('marketplace_categories').select('id,parent_id,slug,name,description,sort_order').eq('active',true).order('sort_order');
+  if(error)throw error;return (data??[]) as MarketplaceCategory[];
+}
+export async function getMarketplaceCatalog(){
+  const {data,error}=await supabase.from('marketplace_catalog').select('*').order('featured',{ascending:false}).order('title');
+  if(error)throw error;return (data??[]) as MarketplaceProduct[];
+}
