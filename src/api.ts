@@ -375,7 +375,7 @@ export type MarketplaceCategory={id:string;parent_id:string|null;slug:string;nam
 export type MarketplaceProduct={
   id:string;slug:string;title:string;short_description:string|null;base_price:number;compare_at_price:number|null;currency:string;
   lead_time_days:number|null;min_order_qty:number;personalization_mode:'none'|'text'|'image'|'configurable';
-  featured:boolean;attributes:any;category_slug:string|null;category_name:string|null;seller_id:string;seller_name:string;
+  featured:boolean;attributes:any;category_slug:string|null;category_name:string|null;parent_category_slug:string|null;parent_category_name:string|null;seller_id:string;seller_name:string;
   seller_type:'dropship'|'maker';fulfillment_model:'dropship'|'seller_fulfilled'
 };
 export async function getMarketplaceCategories(){
@@ -385,4 +385,29 @@ export async function getMarketplaceCategories(){
 export async function getMarketplaceCatalog(){
   const {data,error}=await supabase.from('marketplace_catalog').select('*').order('featured',{ascending:false}).order('title');
   if(error)throw error;return (data??[]) as MarketplaceProduct[];
+}
+
+
+export type SellerApplicationInput={
+  seller_type:'dropship'|'maker';display_name:string;contact_name:string;email:string;phone?:string;country_code?:string;city?:string;
+  website?:string;instagram?:string;tax_id?:string;categories?:string[];fulfillment_notes?:string;personalization_capabilities?:string;
+  average_lead_time_days?:number|null;ships_to?:string[];
+};
+export async function createSellerApplication(input:SellerApplicationInput){
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)throw new Error('É necessário iniciar sessão.');
+  const {data,error}=await supabase.from('marketplace_seller_applications').insert({
+    applicant_user_id:user.id,
+    seller_type:input.seller_type,display_name:input.display_name.trim(),contact_name:input.contact_name.trim(),email:input.email.trim().toLowerCase(),
+    phone:input.phone||null,country_code:input.country_code||null,city:input.city||null,website:input.website||null,instagram:input.instagram||null,
+    tax_id:input.tax_id||null,categories:input.categories||[],fulfillment_notes:input.fulfillment_notes||null,
+    personalization_capabilities:input.personalization_capabilities||null,average_lead_time_days:input.average_lead_time_days??null,
+    ships_to:input.ships_to||[],status:'submitted'
+  }).select('*').single();
+  if(error)throw error;return data;
+}
+export async function getMySellerApplications(){
+  const {data:{user}}=await supabase.auth.getUser();if(!user)return [];
+  const {data,error}=await supabase.from('marketplace_seller_applications').select('*').eq('applicant_user_id',user.id).order('created_at',{ascending:false});
+  if(error)throw error;return data??[];
 }
