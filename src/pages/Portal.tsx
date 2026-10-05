@@ -5,11 +5,12 @@ import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
   getManagedLandingMedia, getMyWeddings, getPlannerBudget, getPlannerTasks, getPlannerVendors, getWeddingTeam,
   inviteWeddingMember, updateLandingFocal, updatePlannerBudgetItem, updatePlannerTask, updatePlannerVendor,
-  uploadLandingMedia, seedPlannerDefaults, setPlannerTaskTreeStatus, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
+  uploadLandingMedia, seedPlannerDefaults, setPlannerTaskTreeStatus, getPlannerJourneyStates, type PlannerJourneyState, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
 } from '../api';
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
 import GuestExperiencePanel from '../components/GuestExperiencePanel';
+import JourneyWorkspace from '../components/JourneyWorkspace';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
 type AuthMode='login'|'signup'|'forgot';
@@ -66,7 +67,7 @@ export default function Portal(){
     navigate('/portal/'+base+(nextSub?'/'+nextSub:''));
     setDrawerOpen(false);
   };
-  const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]);
+  const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]); const [journeyStates,setJourneyStates]=useState<PlannerJourneyState[]>([]);
   const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [taskFilter,setTaskFilter]=useState<'pending'|'done'|'all'>('pending'); const [vendorName,setVendorName]=useState('');
   const [budgetDesc,setBudgetDesc]=useState(''); const [budgetValue,setBudgetValue]=useState('');
 
@@ -77,9 +78,9 @@ export default function Portal(){
       const ws=session?await getMyWeddings():[]; const w=ws[0]??null; setWedding(w);
       if(w){
         try{await seedPlannerDefaults(w.id)}catch{}
-        const [media,members,t,v,b]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id),getPlannerTasks(w.id),getPlannerVendors(w.id),getPlannerBudget(w.id)]);
-        setItems(media as Item[]); setTeam(members); setTasks(t); setVendors(v); setBudget(b);
-      }else{setItems([]);setTeam([]);setTasks([]);setVendors([]);setBudget([])}
+        const [media,members,t,v,b,j]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id),getPlannerTasks(w.id),getPlannerVendors(w.id),getPlannerBudget(w.id),getPlannerJourneyStates(w.id)]);
+        setItems(media as Item[]); setTeam(members); setTasks(t); setVendors(v); setBudget(b); setJourneyStates(j);
+      }else{setItems([]);setTeam([]);setTasks([]);setVendors([]);setBudget([]);setJourneyStates([])}
     }catch(e:any){setMessage(e.message||'Não foi possível abrir o portal.')} finally{setLoading(false)}
   }
   useEffect(()=>{load();const {data}=supabase.auth.onAuthStateChange(()=>setTimeout(load,0));return()=>data.subscription.unsubscribe()},[]);
@@ -136,7 +137,15 @@ export default function Portal(){
   const sectionTitle:Record<Section,string>={dashboard:'Assistente',planeamento:'Planeamento',convidados:'Convidados',gestao:'Gestão',specialday:'Special Day',equipa:'Equipa'};
   const selectedStage=planningStages.find(s=>s.slug===sub);
   const selectedStageParents=selectedStage?taskParents.filter(t=>selectedStage.keys.includes(t.template_key||'')):[];
-  const selectedStageTasks=selectedStageParents.flatMap(parent=>[parent,...tasks.filter(t=>t.parent_id===parent.id)]);
+  const stageIsDone=(stage:{slug:string;keys:string[]})=>{
+    const explicit=journeyStates.find(j=>j.journey_key===stage.slug);
+    if(explicit?.status==='done'||explicit?.status==='skipped')return true;
+    const parents=taskParents.filter(t=>stage.keys.includes(t.template_key||''));
+    const children=parents.flatMap(p=>tasks.filter(t=>t.parent_id===p.id));
+    const relevant=children.length?children:parents;
+    return relevant.length>0&&relevant.every(t=>t.status==='done');
+  };
+  const sortedPlanningStages=[...planningStages].sort((a,b)=>Number(stageIsDone(a))-Number(stageIsDone(b)));
   const bottomSection:Section=section==='equipa'?'dashboard':section;
 
   return <main className="portal-shell"><div className="portal-wrap">
@@ -167,7 +176,7 @@ export default function Portal(){
             <button className={sub==='organizacao'?'active':''} onClick={()=>go('planeamento','organizacao')}><ClipboardList/><div><strong>Organização</strong><small>Decisões, reuniões e documentos</small></div></button>
           </div>
           <div className="portal-nav-group planning-stage-nav"><span>Etapas do casamento</span>
-            {planningStages.map(stage=>{
+            {sortedPlanningStages.map(stage=>{
               const Icon=stage.icon;
               const parents=taskParents.filter(t=>stage.keys.includes(t.template_key||''));
               const children=parents.flatMap(p=>tasks.filter(t=>t.parent_id===p.id));
@@ -279,24 +288,17 @@ export default function Portal(){
       </div>
     </section>}
       {sub==='organizacao'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
-      {selectedStage&&<section className="portal-card journey-stage-card">
-        <div className="portal-section-title">
-          <div><span>Etapa do casamento</span><h2>{selectedStage.label}</h2><p>Um workflow contínuo: decisões, ações, fornecedores, documentos e pagamentos desta área.</p></div>
-          <button className="journey-open-menu" onClick={()=>setDrawerOpen(true)}><Menu size={16}/> Ver etapas</button>
-        </div>
-        {selectedStageTasks.length?<div className="journey-stage-flow">
-          {selectedStageParents.map(parent=>{
-            const children=tasks.filter(t=>t.parent_id===parent.id).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
-            const relevant=children.length?children:[parent];
-            const done=relevant.filter(t=>t.status==='done').length;
-            return <article className="journey-milestone" key={parent.id}>
-              <div className="journey-milestone-head"><div><strong>{parent.title}</strong><span>{done}/{relevant.length} concluídos</span></div><span className={'journey-status '+parent.status}>{parent.status==='done'?'Concluído':parent.status==='doing'?'Em curso':'A fazer'}</span></div>
-              <div className="journey-progress"><span style={{width:(relevant.length?done/relevant.length*100:0)+'%'}}/></div>
-              {children.length>0&&<div className="journey-actions">{children.map(child=><button key={child.id} className={child.status==='done'?'done':''} onClick={async()=>{await setPlannerTaskTreeStatus(child.id,child.status==='done'?'todo':'done');setTasks(await getPlannerTasks(wedding.id))}}><span>{child.status==='done'?<CheckCircle2 size={18}/>:<i/>}</span><div><strong>{child.title}</strong><small>{child.due_date?new Date(child.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div></button>)}</div>}
-            </article>
-          })}
-        </div>:<div className="planner-empty"><Sparkles/><strong>Esta etapa ainda não tem ações configuradas.</strong><span>O motor de journeys vai poder adaptar os passos às escolhas do casal.</span></div>}
-      </section>}
+      {selectedStage&&<JourneyWorkspace
+        weddingId={wedding.id}
+        stage={selectedStage}
+        tasks={tasks}
+        vendors={vendors}
+        budget={budget}
+        state={journeyStates.find(j=>j.journey_key===selectedStage.slug)}
+        onState={(value)=>setJourneyStates(prev=>[...prev.filter(j=>j.journey_key!==value.journey_key),value])}
+        onGo={(target,targetSub)=>go(target,targetSub)}
+        onToggleTask={async(task)=>{await setPlannerTaskTreeStatus(task.id,task.status==='done'?'todo':'done');setTasks(await getPlannerTasks(wedding.id))}}
+      />}
     </div>}
 
     {section==='convidados'&&<div className="portal-section-shell">
