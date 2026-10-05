@@ -4,7 +4,7 @@ import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
   getManagedLandingMedia, getMyWeddings, getPlannerBudget, getPlannerTasks, getPlannerVendors, getWeddingTeam,
   inviteWeddingMember, updateLandingFocal, updatePlannerBudgetItem, updatePlannerTask, updatePlannerVendor,
-  uploadLandingMedia, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
+  uploadLandingMedia, seedPlannerDefaults, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
 } from '../api';
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
@@ -32,6 +32,7 @@ export default function Portal(){
       const {data:{session}}=await supabase.auth.getSession(); setSignedIn(Boolean(session));
       const ws=session?await getMyWeddings():[]; const w=ws[0]??null; setWedding(w);
       if(w){
+        try{await seedPlannerDefaults(w.id)}catch{}
         const [media,members,t,v,b]=await Promise.all([getManagedLandingMedia(w.id),getWeddingTeam(w.id),getPlannerTasks(w.id),getPlannerVendors(w.id),getPlannerBudget(w.id)]);
         setItems(media as Item[]); setTeam(members); setTasks(t); setVendors(v); setBudget(b);
       }else{setItems([]);setTeam([]);setTasks([]);setVendors([]);setBudget([])}
