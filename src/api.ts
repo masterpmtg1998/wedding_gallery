@@ -492,3 +492,39 @@ export async function createVenueVisit(optionId:string,scheduledAt:string){
   const {data,error}=await supabase.from('planner_venue_visits').insert({option_id:optionId,scheduled_at:scheduledAt}).select('*').single();
   if(error)throw error;return data as VenueVisit;
 }
+
+
+export type GuestInternalGroup={
+  id:string;wedding_id:string;parent_id:string|null;name:string;sort_order:number;active:boolean;
+};
+export type GuestInternalGroupMember={wedding_id:string;guest_id:number;group_id:string};
+
+export async function seedGuestInternalGroups(weddingId:string){
+  const {data,error}=await supabase.rpc('seed_guest_internal_groups',{p_wedding_id:weddingId});
+  if(error)throw error;return Number(data||0);
+}
+export async function getGuestInternalGroups(weddingId:string){
+  const {data,error}=await supabase.from('guest_internal_groups').select('id,wedding_id,parent_id,name,sort_order,active').eq('wedding_id',weddingId).eq('active',true).order('sort_order').order('name');
+  if(error)throw error;return (data??[]) as GuestInternalGroup[];
+}
+export async function getGuestInternalGroupMembers(weddingId:string){
+  const {data,error}=await supabase.from('guest_internal_group_members').select('wedding_id,guest_id,group_id').eq('wedding_id',weddingId);
+  if(error)throw error;return (data??[]) as GuestInternalGroupMember[];
+}
+export async function createGuestInternalGroup(weddingId:string,name:string,parentId:string|null=null){
+  const {data,error}=await supabase.from('guest_internal_groups').insert({wedding_id:weddingId,name:name.trim(),parent_id:parentId}).select('*').single();
+  if(error)throw error;return data as GuestInternalGroup;
+}
+export async function updateGuestInternalGroup(id:string,patch:Partial<Pick<GuestInternalGroup,'name'|'parent_id'|'sort_order'|'active'>>){
+  const {data,error}=await supabase.from('guest_internal_groups').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
+  if(error)throw error;return data as GuestInternalGroup;
+}
+export async function setGuestInternalGroupMembership(weddingId:string,guestId:number,groupId:string,enabled:boolean){
+  if(enabled){
+    const {error}=await supabase.from('guest_internal_group_members').upsert({wedding_id:weddingId,guest_id:guestId,group_id:groupId},{onConflict:'guest_id,group_id'});
+    if(error)throw error;
+  }else{
+    const {error}=await supabase.from('guest_internal_group_members').delete().eq('guest_id',guestId).eq('group_id',groupId);
+    if(error)throw error;
+  }
+}
