@@ -4,7 +4,7 @@ import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
   getManagedLandingMedia, getMyWeddings, getPlannerBudget, getPlannerTasks, getPlannerVendors, getWeddingTeam,
   inviteWeddingMember, updateLandingFocal, updatePlannerBudgetItem, updatePlannerTask, updatePlannerVendor,
-  uploadLandingMedia, seedPlannerDefaults, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
+  uploadLandingMedia, seedPlannerDefaults, setPlannerTaskTreeStatus, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
 } from '../api';
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
@@ -23,7 +23,7 @@ export default function Portal(){
   const [inviteEmail,setInviteEmail]=useState(''); const [message,setMessage]=useState(''); const [inviting,setInviting]=useState(false);
   const [resending,setResending]=useState(''); const [team,setTeam]=useState<any[]>([]); const [tab,setTab]=useState<Tab>('dashboard');
   const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]);
-  const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [vendorName,setVendorName]=useState('');
+  const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [taskFilter,setTaskFilter]=useState<'pending'|'done'|'all'>('pending'); const [vendorName,setVendorName]=useState('');
   const [budgetDesc,setBudgetDesc]=useState(''); const [budgetValue,setBudgetValue]=useState('');
 
   async function load(){
@@ -51,8 +51,9 @@ export default function Portal(){
   async function replace(slot:number,file?:File){if(!file||!wedding)return;setMessage('A carregar original…');try{await uploadLandingMedia(wedding.id,slot,file);await load();setMessage('Foto atualizada.')}catch(e:any){setMessage(e.message||'Erro no upload.')}}
   async function focal(item:Item,x:number,y:number){if(!wedding)return;setItems(v=>v.map(i=>i.slot===item.slot?{...i,focal_x:x,focal_y:y}:i));await updateLandingFocal(wedding.id,item.slot,x,y)}
 
-  const openTasks=tasks.filter(t=>t.status!=='done');
-  const completed=tasks.filter(t=>t.status==='done').length;
+  const leafTasks=tasks.filter(t=>!tasks.some(c=>c.parent_id===t.id));
+  const openTasks=leafTasks.filter(t=>t.status!=='done');
+  const completed=leafTasks.filter(t=>t.status==='done').length;
   const totalBudget=budget.reduce((s,b)=>s+Number(b.budgeted||0),0);
   const totalContracted=budget.reduce((s,b)=>s+Number(b.contracted??b.budgeted??0),0);
   const totalPaid=budget.reduce((s,b)=>s+Number(b.paid||0),0);
@@ -61,6 +62,14 @@ export default function Portal(){
     const p={urgent:0,high:1,normal:2,low:3}; const pa=p[a.priority],pb=p[b.priority]; if(pa!==pb)return pa-pb;
     if(a.due_date&&!b.due_date)return -1;if(!a.due_date&&b.due_date)return 1;return (a.due_date||'9999').localeCompare(b.due_date||'9999')
   }).slice(0,5),[tasks]);
+
+  const phaseLabels:Record<string,string>={
+    '12_9m':'12–9 meses antes','9_6m':'9–6 meses antes','6_3m':'6–3 meses antes','3_1m':'3–1 meses antes','final_month':'Último mês','final_week':'Última semana','manual':'Tarefas adicionais'
+  };
+  const taskParents=tasks.filter(t=>!t.parent_id);
+  const visibleTask=(t:PlannerTask)=>taskFilter==='all'||(taskFilter==='pending'?t.status!=='done':t.status==='done');
+  const taskPhases=[...new Set(taskParents.map(t=>t.phase_key||'manual'))].sort((a,b)=>Math.min(...taskParents.filter(t=>(t.phase_key||'manual')===a).map(t=>t.phase_order||999))-Math.min(...taskParents.filter(t=>(t.phase_key||'manual')===b).map(t=>t.phase_order||999)));
+
 
   if(loading)return <main className="portal-shell"><div className="portal-card">A preparar o portal…</div></main>;
   if(!signedIn)return <main className="portal-shell"><section className="portal-card portal-login">
@@ -88,7 +97,7 @@ export default function Portal(){
     {tab==='dashboard'&&<div className="planner-dashboard">
       <section className="planner-hero portal-card">
         <div><span className="planner-kicker"><Sparkles size={14}/> Assistente de planeamento</span><h2>{countdown!=null&&countdown>=0?'Faltam '+countdown+' dias':'O grande dia chegou'}</h2><p>O objetivo é manter-vos focados apenas no que precisa de atenção agora.</p></div>
-        <div className="planner-score"><strong>{tasks.length?Math.round((completed/tasks.length)*100):0}%</strong><span>tarefas concluídas</span></div>
+        <div className="planner-score"><strong>{leafTasks.length?Math.round((completed/leafTasks.length)*100):0}%</strong><span>tarefas concluídas</span></div>
       </section>
       <div className="planner-metrics">
         <button className="planner-metric" onClick={()=>setTab('tarefas')}><ClipboardList/><span>Pendentes</span><strong>{openTasks.length}</strong></button>
@@ -102,16 +111,53 @@ export default function Portal(){
       </section>
     </div>}
 
-    {tab==='tarefas'&&<section className="portal-card">
-      <div className="portal-section-title"><div><span>Planeamento</span><h2>Tarefas & cronograma</h2><p>Responsável, prioridade e prazo numa única lista.</p></div><ClipboardList size={24}/></div>
-      <form className="planner-inline-form" onSubmit={async e=>{e.preventDefault();if(!taskTitle.trim())return;await createPlannerTask(wedding.id,{title:taskTitle,due_date:taskDue||null});setTaskTitle('');setTaskDue('');setTasks(await getPlannerTasks(wedding.id))}}>
-        <input className="search" placeholder="Nova tarefa" value={taskTitle} onChange={e=>setTaskTitle(e.target.value)}/><input className="search" type="date" value={taskDue} onChange={e=>setTaskDue(e.target.value)}/><button className="primary">Adicionar</button>
+    {tab==='tarefas'&&<section className="portal-card task-timeline-card">
+      <div className="portal-section-title"><div><span>Cronograma</span><h2>Tarefas & subtarefas</h2><p>Cada objetivo principal abre o respetivo processo. Por defeito, o que está concluído fica oculto.</p></div><ClipboardList size={24}/></div>
+      <div className="task-toolbar">
+        <div className="task-filters">
+          <button className={taskFilter==='pending'?'active':''} onClick={()=>setTaskFilter('pending')}>Pendentes</button>
+          <button className={taskFilter==='done'?'active':''} onClick={()=>setTaskFilter('done')}>Done</button>
+          <button className={taskFilter==='all'?'active':''} onClick={()=>setTaskFilter('all')}>Tudo</button>
+        </div>
+        <span>{openTasks.length} pendentes · {completed} concluídas</span>
+      </div>
+      <form className="planner-inline-form" onSubmit={async e=>{e.preventDefault();if(!taskTitle.trim())return;await createPlannerTask(wedding.id,{title:taskTitle,due_date:taskDue||null,phase_key:'manual',phase_order:999});setTaskTitle('');setTaskDue('');setTasks(await getPlannerTasks(wedding.id))}}>
+        <input className="search" placeholder="Adicionar tarefa pontual" value={taskTitle} onChange={e=>setTaskTitle(e.target.value)}/><input className="search" type="date" value={taskDue} onChange={e=>setTaskDue(e.target.value)}/><button className="primary">Adicionar</button>
       </form>
-      <div className="planner-list">{tasks.map(t=><div className={'planner-row '+(t.status==='done'?'done':'')} key={t.id}>
-        <button className="planner-check" onClick={async()=>{await updatePlannerTask(t.id,{status:t.status==='done'?'todo':'done'});setTasks(await getPlannerTasks(wedding.id))}}>{t.status==='done'?<CheckCircle2/>:<span/>}</button>
-        <div className="planner-row-main"><strong>{t.title}</strong><small>{t.category} · {t.owner_label==='ambos'?'Ambos':t.owner_label}{t.due_date?' · '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):''}</small></div>
-        <select value={t.priority} onChange={async e=>{await updatePlannerTask(t.id,{priority:e.target.value as any});setTasks(await getPlannerTasks(wedding.id))}}><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
-      </div>)}</div>
+      <div className="task-timeline">
+        {taskPhases.map(phase=>{
+          const parents=taskParents.filter(t=>(t.phase_key||'manual')===phase).filter(p=>{
+            const children=tasks.filter(c=>c.parent_id===p.id);
+            if(children.length) return visibleTask(p)||children.some(visibleTask);
+            return visibleTask(p);
+          });
+          if(!parents.length)return null;
+          return <section className="task-phase" key={phase}>
+            <div className="task-phase-head"><span>{phaseLabels[phase]||phase}</span></div>
+            <div className="task-tree-list">{parents.map(parent=>{
+              const children=tasks.filter(c=>c.parent_id===parent.id).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
+              const visibleChildren=children.filter(visibleTask);
+              const doneChildren=children.filter(c=>c.status==='done').length;
+              const hasChildren=children.length>0;
+              return <article className={'task-parent '+(parent.status==='done'?'done':'')} key={parent.id}>
+                <div className="task-parent-head">
+                  <button className="planner-check" onClick={async()=>{await setPlannerTaskTreeStatus(parent.id,parent.status==='done'?'todo':'done');setTasks(await getPlannerTasks(wedding.id))}}>{parent.status==='done'?<CheckCircle2/>:<span/>}</button>
+                  <div className="task-parent-main">
+                    <div className="task-parent-title"><strong>{parent.title}</strong>{hasChildren&&<span>{doneChildren}/{children.length}</span>}</div>
+                    <small>{parent.due_date?'Objetivo até '+new Date(parent.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'} · {parent.owner_label==='ambos'?'Ambos':parent.owner_label}</small>
+                  </div>
+                  <span className={'priority-pill '+parent.priority}>{parent.priority==='urgent'?'Urgente':parent.priority==='high'?'Alta':parent.priority==='low'?'Baixa':'Normal'}</span>
+                </div>
+                {hasChildren&&visibleChildren.length>0&&<div className="task-children">{visibleChildren.map(child=><div className={'task-child '+(child.status==='done'?'done':'')} key={child.id}>
+                  <button className="planner-check small" onClick={async()=>{await setPlannerTaskTreeStatus(child.id,child.status==='done'?'todo':'done');setTasks(await getPlannerTasks(wedding.id))}}>{child.status==='done'?<CheckCircle2/>:<span/>}</button>
+                  <div><strong>{child.title}</strong><small>{child.due_date?new Date(child.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div>
+                  <select value={child.priority} onChange={async e=>{await updatePlannerTask(child.id,{priority:e.target.value as any});setTasks(await getPlannerTasks(wedding.id))}}><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
+                </div>)}</div>}
+              </article>
+            })}</div>
+          </section>
+        })}
+      </div>
     </section>}
 
     {tab==='planeamento'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
