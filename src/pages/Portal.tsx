@@ -19,7 +19,7 @@ const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'
 const dayDiff=(iso:string)=>Math.ceil((new Date(iso+'T12:00:00').getTime()-Date.now())/86400000);
 
 
-const planningStages=[
+const planningStages:{slug:string;label:string;keys:string[];icon:any}[]=[
   {slug:'quinta',label:'Espaço / Quinta',keys:['venue'],icon:MapPin},
   {slug:'fotografia',label:'Fotografia & vídeo',keys:['photo'],icon:Camera},
   {slug:'catering',label:'Catering & menu',keys:['catering'],icon:UtensilsCrossed},
@@ -33,7 +33,7 @@ const planningStages=[
   {slug:'seating',label:'Seating plan',keys:['seating'],icon:UsersRound},
   {slug:'pagamentos',label:'Pagamentos finais',keys:['payments_final'],icon:CreditCard},
   {slug:'fecho',label:'Fecho do casamento',keys:['supplier_final','day_timeline','final_docs'],icon:Sparkles},
-] as const;
+];
 
 export default function Portal(){
   const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [mode,setMode]=useState<AuthMode>('login');
@@ -135,7 +135,7 @@ export default function Portal(){
 
   const sectionTitle:Record<Section,string>={dashboard:'Assistente',planeamento:'Planeamento',convidados:'Convidados',gestao:'Gestão',specialday:'Special Day',equipa:'Equipa'};
   const selectedStage=planningStages.find(s=>s.slug===sub);
-  const selectedStageParents=selectedStage?taskParents.filter(t=>selectedStage.keys.includes((t.template_key||'') as any)):[];
+  const selectedStageParents=selectedStage?taskParents.filter(t=>selectedStage.keys.includes(t.template_key||'')):[];
   const selectedStageTasks=selectedStageParents.flatMap(parent=>[parent,...tasks.filter(t=>t.parent_id===parent.id)]);
   const bottomSection:Section=section==='equipa'?'dashboard':section;
 
@@ -155,7 +155,7 @@ export default function Portal(){
             <button className={pathSection==='assistente'?'active':''} onClick={()=>go('dashboard')}><Home/><div><strong>Assistente</strong><small>Agora, prioridades e próximos passos</small></div></button>
           </div>
           <div className="portal-nav-group"><span>Conta & extras</span>
-            <button className={section==='equipa'?'active':''} onClick={()=>go('equipa')}><UsersRound/><div><strong>Equipa</strong><small>Noivos e co-gestores</small></div></button>
+            <button onClick={()=>go('equipa')}><UsersRound/><div><strong>Equipa</strong><small>Noivos e co-gestores</small></div></button>
             <a href="/marketplace"><Store/><div><strong>Marketplace</strong><small>Abrir a loja pública</small></div><ExternalLink size={14}/></a>
           </div>
         </>}
@@ -169,7 +169,7 @@ export default function Portal(){
           <div className="portal-nav-group planning-stage-nav"><span>Etapas do casamento</span>
             {planningStages.map(stage=>{
               const Icon=stage.icon;
-              const parents=taskParents.filter(t=>stage.keys.includes((t.template_key||'') as any));
+              const parents=taskParents.filter(t=>stage.keys.includes(t.template_key||''));
               const children=parents.flatMap(p=>tasks.filter(t=>t.parent_id===p.id));
               const relevant=children.length?children:parents;
               const done=relevant.filter(t=>t.status==='done').length;
@@ -227,7 +227,7 @@ export default function Portal(){
         </section>
         <section className="portal-card">
           <div className="portal-section-title"><div><span>Próximas ações</span><h2>Continuar a organizar</h2><p>Prioridade e prazo, sem mostrar o casamento inteiro de uma vez.</p></div></div>
-          <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>{const parent=t.parent_id?tasks.find(p=>p.id===t.parent_id):t;const stage=planningStages.find(s=>s.keys.includes((parent?.template_key||'') as any));go('planeamento',stage?.slug||'cronograma')}} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>O planeamento está em dia.</span></div>}</div>
+          <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>{const parent=t.parent_id?tasks.find(p=>p.id===t.parent_id):t;const stage=planningStages.find(s=>s.keys.includes(parent?.template_key||''));go('planeamento',stage?.slug||'cronograma')}} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>O planeamento está em dia.</span></div>}</div>
         </section>
       </div>}
       {sub==='cronograma'&&<section className="portal-card task-timeline-card">
