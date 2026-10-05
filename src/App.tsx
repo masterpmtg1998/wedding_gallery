@@ -10,6 +10,7 @@ const AddPhotos=lazy(()=>import('./pages/AddPhotos'));
 const Album=lazy(()=>import('./pages/Album'));
 const Tables=lazy(()=>import('./pages/Tables'));
 const Portal=lazy(()=>import('./pages/Portal'));
+const SellerOnboarding=lazy(()=>import('./pages/SellerOnboarding'));
 
 function Loading(){return <main className="route-loading"><div className="route-loading-mark">M</div><span>A preparar…</span></main>}
 function GuestGate({next,children}:{next:string;children:ReactNode}){
@@ -28,6 +29,7 @@ export default function App(){
   <Route path="/" component={CommercialLanding}/>
   <Route path="/portal/:section"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
   <Route path="/portal"><Suspense fallback={<Loading/>}><Portal/></Suspense></Route>
+  <Route path="/vender"><Suspense fallback={<Loading/>}><SellerOnboarding/></Suspense></Route>
 
   <Route path="/w/:slug">{params=><PublicFeatureGate slug={params.slug} feature="published"><Landing/></PublicFeatureGate>}</Route>
   <Route path="/w/:slug/identificar">{params=><PublicFeatureGate slug={params.slug} feature="published"><Suspense fallback={<Loading/>}><Identify/></Suspense></PublicFeatureGate>}</Route>
