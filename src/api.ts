@@ -356,3 +356,16 @@ export async function getPlannerDocumentUrl(path:string){
 export async function setPlannerTaskTreeStatus(taskId:string,status:'todo'|'doing'|'done'){
   const {error}=await supabase.rpc('set_planner_task_tree_status',{p_task_id:taskId,p_status:status});if(error)throw error;
 }
+
+
+export type GuestExperienceSettings={published:boolean;uploads:boolean;album:boolean;tables:boolean};
+export function readGuestExperienceSettings(settings:any):GuestExperienceSettings{
+  const g=settings?.guest_experience||{};
+  return {published:g.published!==false,uploads:g.uploads!==false,album:g.album!==false,tables:g.tables!==false};
+}
+export async function updateGuestExperienceSettings(weddingId:string,value:GuestExperienceSettings){
+  const {data,error}=await supabase.rpc('update_guest_experience_settings',{
+    p_wedding_id:weddingId,p_published:value.published,p_uploads:value.uploads,p_album:value.album,p_tables:value.tables
+  });
+  if(error)throw error; return data;
+}
