@@ -229,6 +229,7 @@ export type PlannerTask={
   id:string; wedding_id:string; title:string; category:string; status:'todo'|'doing'|'done';
   priority:'low'|'normal'|'high'|'urgent'; due_date:string|null; owner_label:'pedro'|'tania'|'ambos'|'outro';
   supplier_name:string|null; budget_amount:number|null; notes:string|null; sort_order:number;
+  parent_id:string|null; phase_key:string|null; phase_order:number; template_key:string|null; auto_generated:boolean;
 };
 export type PlannerVendor={
   id:string; wedding_id:string; category:string; name:string; contact_name:string|null; email:string|null; phone:string|null;
@@ -241,7 +242,7 @@ export type PlannerBudgetItem={
 };
 
 export async function getPlannerTasks(weddingId:string){
-  const {data,error}=await supabase.from('planner_tasks').select('*').eq('wedding_id',weddingId).order('status').order('due_date',{ascending:true,nullsFirst:false}).order('sort_order');
+  const {data,error}=await supabase.from('planner_tasks').select('*').eq('wedding_id',weddingId).order('phase_order').order('due_date',{ascending:true,nullsFirst:false}).order('sort_order');
   if(error)throw error; return (data??[]) as PlannerTask[];
 }
 export async function createPlannerTask(weddingId:string,input:Partial<PlannerTask>&{title:string}){
