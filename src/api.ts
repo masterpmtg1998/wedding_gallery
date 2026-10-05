@@ -196,7 +196,7 @@ export async function getMyWeddings(){
   const {data:members,error}=await supabase.from('wedding_members').select('wedding_id,role').eq('user_id',user.id);
   if(error)throw error;
   if(!members?.length)return [];
-  const {data:weddings,error:we}=await supabase.from('weddings').select('id,slug,couple_names,wedding_date').in('id',members.map((m:any)=>m.wedding_id));
+  const {data:weddings,error:we}=await supabase.from('weddings').select('id,slug,couple_names,wedding_date,settings').in('id',members.map((m:any)=>m.wedding_id));
   if(we)throw we;
   const roles=new Map(members.map((m:any)=>[m.wedding_id,m.role]));
   return (weddings??[]).map((w:any)=>({...w,role:roles.get(w.id)}));
