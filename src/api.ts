@@ -375,7 +375,7 @@ export type MarketplaceCategory={id:string;parent_id:string|null;slug:string;nam
 export type MarketplaceProduct={
   id:string;slug:string;title:string;short_description:string|null;base_price:number;compare_at_price:number|null;currency:string;
   lead_time_days:number|null;min_order_qty:number;personalization_mode:'none'|'text'|'image'|'configurable';
-  featured:boolean;attributes:any;category_slug:string|null;category_name:string|null;parent_category_slug:string|null;parent_category_name:string|null;seller_id:string;seller_name:string;
+  featured:boolean;attributes:any;product_type:'physical'|'service';category_slug:string|null;category_name:string|null;parent_category_slug:string|null;parent_category_name:string|null;seller_id:string;seller_name:string;
   seller_type:'dropship'|'maker';fulfillment_model:'dropship'|'seller_fulfilled'
 };
 export async function getMarketplaceCategories(){
