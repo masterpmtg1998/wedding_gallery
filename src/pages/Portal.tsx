@@ -11,6 +11,7 @@ import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
 import GuestExperiencePanel from '../components/GuestExperiencePanel';
 import JourneyWorkspace from '../components/JourneyWorkspace';
+import VenueJourney from '../components/VenueJourney';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
 type AuthMode='login'|'signup'|'forgot';
@@ -288,7 +289,7 @@ export default function Portal(){
       </div>
     </section>}
       {sub==='organizacao'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
-      {selectedStage&&<JourneyWorkspace
+      {selectedStage&&selectedStage.slug==='quinta'?<VenueJourney weddingId={wedding.id}/>:selectedStage&&<JourneyWorkspace
         weddingId={wedding.id}
         stage={selectedStage}
         tasks={tasks}
