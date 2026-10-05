@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'wouter';
 import { CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, HeartHandshake, ImagePlus, LogOut, Save, Sparkles, Upload, UsersRound } from 'lucide-react';
 import {
   cancelWeddingInvitation, createPlannerBudgetItem, createPlannerTask, createPlannerVendor, createWeddingWorkspace,
@@ -8,10 +9,11 @@ import {
 } from '../api';
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
+import GuestExperiencePanel from '../components/GuestExperiencePanel';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
 type AuthMode='login'|'signup'|'forgot';
-type Tab='dashboard'|'tarefas'|'planeamento'|'convidados'|'mesas'|'fornecedores'|'orcamento'|'equipa'|'personalizacao';
+type Tab='dashboard'|'tarefas'|'planeamento'|'convidados'|'mesas'|'fornecedores'|'orcamento'|'equipa'|'specialday';
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
 const dayDiff=(iso:string)=>Math.ceil((new Date(iso+'T12:00:00').getTime()-Date.now())/86400000);
@@ -21,7 +23,13 @@ export default function Portal(){
   const [loading,setLoading]=useState(true); const [wedding,setWedding]=useState<any>(null); const [signedIn,setSignedIn]=useState(false);
   const [items,setItems]=useState<Item[]>([]); const [coupleNames,setCoupleNames]=useState(''); const [weddingDate,setWeddingDate]=useState('');
   const [inviteEmail,setInviteEmail]=useState(''); const [message,setMessage]=useState(''); const [inviting,setInviting]=useState(false);
-  const [resending,setResending]=useState(''); const [team,setTeam]=useState<any[]>([]); const [tab,setTab]=useState<Tab>('dashboard');
+  const [resending,setResending]=useState(''); const [team,setTeam]=useState<any[]>([]);
+  const [location,navigate]=useLocation();
+  const pathSection=location.split('/')[2]||'assistente';
+  const pathToTab:Record<string,Tab>={assistente:'dashboard',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',equipa:'equipa',specialday:'specialday'};
+  const tab:Tab=pathToTab[pathSection]||'dashboard';
+  const tabPath:Record<Tab,string>={dashboard:'assistente',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',equipa:'equipa',specialday:'specialday'};
+  const go=(next:Tab)=>navigate('/portal/'+tabPath[next]);
   const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]);
   const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [taskFilter,setTaskFilter]=useState<'pending'|'done'|'all'>('pending'); const [vendorName,setVendorName]=useState('');
   const [budgetDesc,setBudgetDesc]=useState(''); const [budgetValue,setBudgetValue]=useState('');
@@ -39,6 +47,7 @@ export default function Portal(){
     }catch(e:any){setMessage(e.message||'Não foi possível abrir o portal.')} finally{setLoading(false)}
   }
   useEffect(()=>{load();const {data}=supabase.auth.onAuthStateChange(()=>setTimeout(load,0));return()=>data.subscription.unsubscribe()},[]);
+  useEffect(()=>{if(!loading&&signedIn&&pathSection==='login')navigate('/portal/assistente')},[loading,signedIn,pathSection,navigate]);
 
   async function authenticate(e:React.FormEvent){
     e.preventDefault(); setMessage('');
@@ -87,12 +96,12 @@ export default function Portal(){
     {message&&<p className="notice">{message}</p>}<div className="auth-links"><button onClick={()=>supabase.auth.signOut()}>Sair</button></div>
   </section></main>;
 
-  const nav:Tab[]=['dashboard','tarefas','planeamento','convidados','mesas','fornecedores','orcamento','equipa','personalizacao'];
-  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',planeamento:'Planeamento',convidados:'Convidados',mesas:'Mesas',fornecedores:'Fornecedores',orcamento:'Orçamento',equipa:'Equipa',personalizacao:'Site & fotos'};
+  const nav:Tab[]=['dashboard','tarefas','planeamento','convidados','mesas','fornecedores','orcamento','specialday','equipa'];
+  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',planeamento:'Planeamento',convidados:'Convidados',mesas:'Mesas',fornecedores:'Fornecedores',orcamento:'Orçamento',equipa:'Equipa',specialday:'Special day'};
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Wedding Planner</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
-    <nav className="portal-tabs">{nav.map(x=><button key={x} className={tab===x?'active':''} onClick={()=>setTab(x)}>{labels[x]}</button>)}</nav>
+    <nav className="portal-tabs">{nav.map(x=><button key={x} className={tab===x?'active':''} onClick={()=>go(x)}>{labels[x]}</button>)}</nav>
 
     {tab==='dashboard'&&<div className="planner-dashboard">
       <section className="planner-hero portal-card">
@@ -100,14 +109,14 @@ export default function Portal(){
         <div className="planner-score"><strong>{leafTasks.length?Math.round((completed/leafTasks.length)*100):0}%</strong><span>tarefas concluídas</span></div>
       </section>
       <div className="planner-metrics">
-        <button className="planner-metric" onClick={()=>setTab('tarefas')}><ClipboardList/><span>Pendentes</span><strong>{openTasks.length}</strong></button>
-        <button className="planner-metric" onClick={()=>setTab('fornecedores')}><HeartHandshake/><span>Fornecedores</span><strong>{vendors.filter(v=>['booked','paid'].includes(v.status)).length}/{vendors.length}</strong></button>
-        <button className="planner-metric" onClick={()=>setTab('orcamento')}><CircleDollarSign/><span>Contratado</span><strong>{eur(totalContracted)}</strong><small>{eur(totalPaid)} pago</small></button>
+        <button className="planner-metric" onClick={()=>go('tarefas')}><ClipboardList/><span>Pendentes</span><strong>{openTasks.length}</strong></button>
+        <button className="planner-metric" onClick={()=>go('fornecedores')}><HeartHandshake/><span>Fornecedores</span><strong>{vendors.filter(v=>['booked','paid'].includes(v.status)).length}/{vendors.length}</strong></button>
+        <button className="planner-metric" onClick={()=>go('orcamento')}><CircleDollarSign/><span>Contratado</span><strong>{eur(totalContracted)}</strong><small>{eur(totalPaid)} pago</small></button>
         <div className="planner-metric"><CalendarDays/><span>Data</span><strong>{new Date(wedding.wedding_date+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'})}</strong></div>
       </div>
       <section className="portal-card">
         <div className="portal-section-title"><div><span>Prioridades</span><h2>O que eu trataria a seguir</h2><p>Ordenado por urgência e prazo.</p></div><Sparkles size={24}/></div>
-        <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>setTab('tarefas')} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'} · {t.owner_label==='ambos'?'Ambos':t.owner_label}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>Adiciona tarefas para eu começar a priorizar o planeamento.</span></div>}</div>
+        <div className="planner-priorities">{priorities.length?priorities.map(t=><button key={t.id} onClick={()=>go('tarefas')} className="planner-priority"><span className={'priority-dot '+t.priority}/><div><strong>{t.title}</strong><small>{t.due_date?'Até '+new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-PT'):'Sem prazo'} · {t.owner_label==='ambos'?'Ambos':t.owner_label}</small></div></button>):<div className="planner-empty"><CheckCircle2/><strong>Nada urgente.</strong><span>Adiciona tarefas para eu começar a priorizar o planeamento.</span></div>}</div>
       </section>
     </div>}
 
@@ -183,10 +192,10 @@ export default function Portal(){
       {message&&<p className="portal-message"><Save size={14}/>{message}</p>}<div className="team-list">{team.map((m:any)=><div className="team-row" key={m.kind+'-'+m.email}><div><strong>{m.email}</strong><span>{m.role==='owner'?'Proprietário':m.role==='editor'?'Co-gestor':'Leitura'} · {m.status==='pending'?'Convite pendente':'Ativo'}</span></div>{m.status==='pending'&&<div className="team-actions"><button type="button" disabled={resending===m.email} onClick={async()=>{try{setResending(m.email);await inviteWeddingMember(wedding.id,m.email,m.role);setMessage('Convite reenviado.')}finally{setResending('')}}}>{resending===m.email?'A reenviar…':'Reenviar'}</button><button type="button" onClick={async()=>{await cancelWeddingInvitation(wedding.id,m.email);setTeam(await getWeddingTeam(wedding.id))}}>Cancelar</button></div>}</div>)}</div>
     </section>}
 
-    {tab==='personalizacao'&&<section className="portal-card">
+    {tab==='specialday'&&<><GuestExperiencePanel wedding={wedding} onChanged={(settings)=>setWedding((w:any)=>({...w,settings}))}/><section className="portal-card">
       <div className="portal-section-title"><div><span>Site do casamento</span><h2>Fotos de abertura</h2><p>Carrega os originais e ajusta o enquadramento para a experiência mobile.</p></div><ImagePlus size={25}/></div>
       <div className="branding-grid">{[1,2,3,4].map(slot=>{const item=items.find(i=>i.slot===slot);return <article className="branding-card" key={slot}><div className="branding-preview">{item?<img src={item.url} style={{objectPosition:item.focal_x+'% '+item.focal_y+'%'}}/>:<span>Foto {slot}</span>}</div><div className="branding-controls"><label className="upload-control"><Upload size={15}/>{item?'Substituir original':'Carregar original'}<input type="file" accept="image/*,.heic,.heif" onChange={e=>replace(slot,e.target.files?.[0])}/></label>{item&&<><label>Horizontal <input type="range" min="0" max="100" value={item.focal_x} onChange={e=>focal(item,Number(e.target.value),item.focal_y)}/></label><label>Vertical <input type="range" min="0" max="100" value={item.focal_y} onChange={e=>focal(item,item.focal_x,Number(e.target.value))}/></label></>}</div></article>})}</div>
       {message&&<p className="portal-message"><Save size={14}/>{message}</p>}
-    </section>}
+    </section></>}
   </div></main>;
 }
