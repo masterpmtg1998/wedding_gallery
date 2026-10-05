@@ -7,10 +7,11 @@ import {
   uploadLandingMedia, type PlannerBudgetItem, type PlannerTask, type PlannerVendor
 } from '../api';
 import { supabase } from '../supabase';
+import PlannerSuite from '../components/PlannerSuite';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
 type AuthMode='login'|'signup'|'forgot';
-type Tab='dashboard'|'tarefas'|'fornecedores'|'orcamento'|'equipa'|'personalizacao';
+type Tab='dashboard'|'tarefas'|'planeamento'|'convidados'|'mesas'|'fornecedores'|'orcamento'|'equipa'|'personalizacao';
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
 const dayDiff=(iso:string)=>Math.ceil((new Date(iso+'T12:00:00').getTime()-Date.now())/86400000);
@@ -76,8 +77,8 @@ export default function Portal(){
     {message&&<p className="notice">{message}</p>}<div className="auth-links"><button onClick={()=>supabase.auth.signOut()}>Sair</button></div>
   </section></main>;
 
-  const nav:Tab[]=['dashboard','tarefas','fornecedores','orcamento','equipa','personalizacao'];
-  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',fornecedores:'Fornecedores',orcamento:'Orçamento',equipa:'Equipa',personalizacao:'Site & fotos'};
+  const nav:Tab[]=['dashboard','tarefas','planeamento','convidados','mesas','fornecedores','orcamento','equipa','personalizacao'];
+  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',planeamento:'Planeamento',convidados:'Convidados',mesas:'Mesas',fornecedores:'Fornecedores',orcamento:'Orçamento',equipa:'Equipa',personalizacao:'Site & fotos'};
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Wedding Planner</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
@@ -111,6 +112,10 @@ export default function Portal(){
         <select value={t.priority} onChange={async e=>{await updatePlannerTask(t.id,{priority:e.target.value as any});setTasks(await getPlannerTasks(wedding.id))}}><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
       </div>)}</div>
     </section>}
+
+    {tab==='planeamento'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
+    {tab==='convidados'&&<PlannerSuite weddingId={wedding.id} mode="guests"/>}
+    {tab==='mesas'&&<PlannerSuite weddingId={wedding.id} mode="tables"/>}
 
     {tab==='fornecedores'&&<section className="portal-card">
       <div className="portal-section-title"><div><span>Rede de fornecedores</span><h2>Fornecedores</h2><p>Pesquisa, propostas, adjudicação, próximos passos e pagamentos.</p></div><HeartHandshake size={24}/></div>
