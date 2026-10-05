@@ -351,3 +351,8 @@ export async function uploadPlannerDocumentFile(weddingId:string,documentId:stri
 export async function getPlannerDocumentUrl(path:string){
   const {data,error}=await supabase.storage.from('wedding-documents').createSignedUrl(path,900);if(error)throw error;return data.signedUrl;
 }
+
+
+export async function setPlannerTaskTreeStatus(taskId:string,status:'todo'|'doing'|'done'){
+  const {error}=await supabase.rpc('set_planner_task_tree_status',{p_task_id:taskId,p_status:status});if(error)throw error;
+}
