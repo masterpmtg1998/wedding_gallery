@@ -439,3 +439,56 @@ export async function seedWeddingBudgetDefaults(weddingId:string){
   const {data,error}=await supabase.rpc('seed_wedding_budget_defaults',{p_wedding_id:weddingId});
   if(error)throw error;return Number(data||0);
 }
+
+
+export type VenueRequirements={
+  wedding_id:string;preferred_area:string|null;budget_target:number|null;estimated_guests:number|null;
+  ceremony_on_site:boolean|null;outdoor_preferred:boolean|null;accommodation_needed:boolean|null;
+  style_notes:string|null;must_haves:string[];nice_to_haves:string[];selected_option_id:string|null;
+};
+export type VenueOption={
+  id:string;wedding_id:string;supplier_id:string|null;name:string;website:string|null;contact_name:string|null;phone:string|null;email:string|null;location:string|null;
+  status:'researching'|'contacted'|'visit_scheduled'|'visited'|'finalist'|'chosen'|'rejected';
+  min_pax:number|null;max_pax:number|null;deposit_amount:number|null;curfew_time:string|null;ceremony_on_site:boolean|null;outdoor_space:boolean|null;rain_plan:boolean|null;accommodation:boolean|null;parking:boolean|null;exclusivity:boolean|null;rating:number|null;notes:string|null;
+};
+export type VenuePricing={id:string;option_id:string;pax_type:'adult'|'child'|'baby'|'staff';label:string;unit_price:number;min_age:number|null;max_age:number|null;sort_order:number};
+export type VenueVisit={id:string;option_id:string;scheduled_at:string|null;completed_at:string|null;impression:'love'|'maybe'|'reject'|null;checklist:any;notes:string|null};
+
+export async function getVenueWorkspace(weddingId:string){
+  const [{data:req,error:reqErr},{data:opts,error:optErr},{data:pax,error:paxErr}]=await Promise.all([
+    supabase.from('planner_venue_requirements').select('*').eq('wedding_id',weddingId).maybeSingle(),
+    supabase.from('planner_venue_options').select('*').eq('wedding_id',weddingId).order('created_at'),
+    supabase.rpc('get_venue_pax_summary',{p_wedding_id:weddingId})
+  ]);
+  if(reqErr)throw reqErr;if(optErr)throw optErr;if(paxErr)throw paxErr;
+  const optionIds=(opts??[]).map((o:any)=>o.id);
+  let pricing:any[]=[];let visits:any[]=[];
+  if(optionIds.length){
+    const [pr,vi]=await Promise.all([
+      supabase.from('planner_venue_pricing').select('*').in('option_id',optionIds).order('sort_order'),
+      supabase.from('planner_venue_visits').select('*').in('option_id',optionIds).order('scheduled_at')
+    ]);
+    if(pr.error)throw pr.error;if(vi.error)throw vi.error;pricing=pr.data??[];visits=vi.data??[];
+  }
+  return {requirements:req as VenueRequirements|null,options:(opts??[]) as VenueOption[],pricing:pricing as VenuePricing[],visits:visits as VenueVisit[],pax:(pax??[]) as {pax_type:string;qty:number}[]};
+}
+export async function saveVenueRequirements(weddingId:string,input:Partial<VenueRequirements>){
+  const {data,error}=await supabase.from('planner_venue_requirements').upsert({wedding_id:weddingId,...input},{onConflict:'wedding_id'}).select('*').single();
+  if(error)throw error;return data as VenueRequirements;
+}
+export async function createVenueOption(weddingId:string,input:{name:string;location?:string|null}){
+  const {data,error}=await supabase.from('planner_venue_options').insert({wedding_id:weddingId,name:input.name.trim(),location:input.location||null}).select('*').single();
+  if(error)throw error;return data as VenueOption;
+}
+export async function updateVenueOption(id:string,input:Partial<VenueOption>){
+  const {data,error}=await supabase.from('planner_venue_options').update({...input,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();
+  if(error)throw error;return data as VenueOption;
+}
+export async function upsertVenuePricing(optionId:string,paxType:'adult'|'child'|'baby'|'staff',unitPrice:number,label:string){
+  const {data,error}=await supabase.from('planner_venue_pricing').upsert({option_id:optionId,pax_type:paxType,unit_price:unitPrice,label},{onConflict:'option_id,pax_type'}).select('*').single();
+  if(error)throw error;return data as VenuePricing;
+}
+export async function createVenueVisit(optionId:string,scheduledAt:string){
+  const {data,error}=await supabase.from('planner_venue_visits').insert({option_id:optionId,scheduled_at:scheduledAt}).select('*').single();
+  if(error)throw error;return data as VenueVisit;
+}
