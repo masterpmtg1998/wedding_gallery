@@ -4,7 +4,7 @@ import { getMarketplaceCatalog, getMarketplaceCategories, type MarketplaceCatego
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n||0);
 
-export default function Marketplace(){
+export default function Marketplace({publicView=false}:{publicView?:boolean}){
   const [categories,setCategories]=useState<MarketplaceCategory[]>([]);
   const [products,setProducts]=useState<MarketplaceProduct[]>([]);
   const [category,setCategory]=useState('all');
@@ -16,9 +16,10 @@ export default function Marketplace(){
   const topCategories=useMemo(()=>categories.filter(c=>!c.parent_id),[categories]);
   const filtered=useMemo(()=>products.filter(p=>(category==='all'||p.category_slug===category||p.parent_category_slug===category)&&(!query||[p.title,p.short_description,p.category_name,p.parent_category_name].some(v=>(v||'').toLowerCase().includes(query.toLowerCase())))),[products,category,query]);
 
-  return <div className="marketplace-shell">
+  return <div className={'marketplace-shell '+(publicView?'public-view':'')}>
     <section className="portal-card marketplace-hero">
-      <div><span className="planner-kicker"><ShoppingBag size={14}/> Marketplace do casamento</span><h2>Tudo para o grande dia, num só sítio.</h2><p>Brindes, decoração, charutos, acessórios, arranjos, personalizados e muito mais — de parceiros profissionais e pequenos criadores.</p></div>
+      {publicView&&<div className="marketplace-public-badge">Aberto ao público · sem conta</div>}
+      <div><span className="planner-kicker"><ShoppingBag size={14}/> Marketplace do casamento</span><h2>Tudo para o grande dia, num só sítio.</h2><p>Brindes, decoração, charutos, acessórios, arranjos, personalizados e muito mais — de parceiros profissionais e pequenos criadores.</p>{publicView&&<p className="marketplace-public-copy">Qualquer pessoa pode explorar o catálogo. A conta só será necessária quando houver checkout, favoritos ou gestão de encomendas.</p>}</div>
       <div className="marketplace-hero-mark"><Gift/></div>
     </section>
 
