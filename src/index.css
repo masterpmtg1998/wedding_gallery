@@ -1015,3 +1015,21 @@ button,input,select,a{touch-action:manipulation}
   .qr-print-card{position:fixed;inset:0;margin:auto;width:105mm;height:148mm;aspect-ratio:auto;border-radius:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A6 portrait;margin:0}
 }
+
+
+/* Unified wedding marketplace */
+.marketplace-shell{display:grid;gap:14px}
+.marketplace-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;background:linear-gradient(135deg,rgba(255,253,249,.96),rgba(242,234,223,.9))}
+.marketplace-hero h2{font-family:'Fraunces',serif;font-size:clamp(34px,5vw,54px);font-weight:300;line-height:1;margin:10px 0 10px;letter-spacing:-.035em}
+.marketplace-hero p{max-width:720px;margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.marketplace-hero-mark{width:72px;height:72px;border-radius:24px;display:grid;place-items:center;background:rgba(255,255,255,.55);border:1px solid var(--border);color:var(--gold);flex:0 0 auto}
+.marketplace-tools{display:grid;gap:12px}.marketplace-tools .planner-search{margin-top:0}
+.marketplace-categories{display:flex;gap:6px;overflow:auto;scrollbar-width:none;padding-bottom:2px}.marketplace-categories::-webkit-scrollbar{display:none}.marketplace-categories button{flex:0 0 auto;min-height:38px;border:1px solid var(--border);border-radius:999px;background:var(--paper);padding:0 13px;color:var(--muted);font-size:9px}.marketplace-categories button.active{background:var(--green);color:white;border-color:var(--green)}
+.marketplace-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.marketplace-card{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--paper);min-width:0}
+.marketplace-image-placeholder{aspect-ratio:4/3;display:grid;place-items:center;background:linear-gradient(145deg,#eee7dc,#f8f3eb);color:#b39a6a}
+.marketplace-card-body{padding:13px;display:flex;flex-direction:column;gap:6px}.marketplace-card-body>span{font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}.marketplace-card-body h3{font-family:'Fraunces',serif;font-weight:300;font-size:19px;line-height:1.1;margin:0}.marketplace-card-body p{font-size:9px;line-height:1.5;color:var(--muted);margin:0;min-height:40px}.marketplace-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:4px}.marketplace-meta strong{font-size:13px}.marketplace-meta em{font-size:8px;font-style:normal;padding:4px 6px;border-radius:999px;background:var(--green-soft);color:var(--green)}.marketplace-card .primary{margin:4px 0 0;width:100%;min-height:42px}
+.marketplace-empty{min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:var(--muted);padding:34px}.marketplace-empty strong{font-family:'Fraunces',serif;font-size:25px;font-weight:300;color:var(--ink)}.marketplace-empty span{max-width:560px;font-size:11px;line-height:1.6}
+@media(max-width:1050px){.marketplace-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.marketplace-hero{align-items:flex-start}.marketplace-hero-mark{display:none}.marketplace-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:440px){.marketplace-grid{grid-template-columns:1fr}}
