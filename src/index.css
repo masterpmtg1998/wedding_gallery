@@ -661,3 +661,152 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
 @media(max-width:700px){.commercial-features{grid-template-columns:1fr}.commercial-hero{margin-top:70px}.print-options{grid-template-columns:1fr}.wedding-url-row code{width:100%}}
 
 .team-list{display:grid;gap:8px;margin-top:16px}.team-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:14px}.team-row>div{min-width:0;display:flex;flex-direction:column;gap:3px}.team-row strong{font-size:13px;overflow:hidden;text-overflow:ellipsis}.team-row span{font-size:11px;color:var(--muted)}.team-row button{border:0;background:transparent;color:var(--muted);font-size:11px;text-decoration:underline}
+
+
+/* --- RESPONSIVE PRODUCT SPLIT: portal = mobile + desktop, guest experience = mobile first --- */
+html{scroll-behavior:smooth}
+body{overscroll-behavior-y:none}
+button,input,select,a{touch-action:manipulation}
+
+/* Guest-facing QR experience: thumb-first, safe-area aware and intentionally narrow. */
+.page{
+  width:min(100%,720px);
+  padding-left:max(18px,env(safe-area-inset-left));
+  padding-right:max(18px,env(safe-area-inset-right));
+}
+.landing-content{
+  padding-left:max(24px,env(safe-area-inset-left));
+  padding-right:max(24px,env(safe-area-inset-right));
+}
+.landing-cta,.send,.gallery-only,.people-trigger,.load-more{
+  min-height:48px;
+}
+.landing-secondary,.chip,.team-row button,.auth-links button{
+  min-height:44px;
+}
+.chips.horizontal{
+  margin-left:-20px;
+  margin-right:-20px;
+  padding-left:20px;
+  padding-right:20px;
+  scroll-snap-type:x proximity;
+}
+.chips.horizontal>.chip{scroll-snap-align:start}
+.photo-open,.love-button,.review-arrow,.lightbox-close{touch-action:manipulation}
+
+@media(max-width:559px){
+  .page{
+    padding-top:max(20px,env(safe-area-inset-top));
+    padding-bottom:max(54px,env(safe-area-inset-bottom));
+  }
+  .page.with-nav{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+  .pagehead{margin-bottom:22px}
+  .page h1{font-size:31px}
+  .intro{font-size:17px}
+  .album-intro{margin-left:0}
+  .album-grid{gap:8px}
+  .album-card{padding:4px;border-radius:15px}
+  .album-card .photo{border-radius:11px}
+  .photo-meta{padding:7px 3px 3px}
+  .table-card{padding:16px}
+  .table-people{gap:6px}
+  .table-people span{padding:8px 10px}
+  .bottom-nav{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .bottom-nav-inner{max-width:430px}
+  .lightbox{padding-left:12px;padding-right:12px}
+  .lightbox img{max-height:78dvh;border-radius:12px}
+}
+
+/* Portal: dense enough for desktop administration, but one-handed and readable on phones. */
+.portal-shell{
+  padding-top:max(24px,env(safe-area-inset-top));
+  padding-left:max(16px,env(safe-area-inset-left));
+  padding-right:max(16px,env(safe-area-inset-right));
+  padding-bottom:max(60px,env(safe-area-inset-bottom));
+}
+.portal-wrap{width:min(1180px,100%)}
+.portal-head{min-height:58px}
+.portal-head button{min-height:44px;padding:0 10px;border-radius:12px}
+.portal-tabs{
+  position:sticky;
+  top:0;
+  z-index:12;
+  margin-left:-4px;
+  margin-right:-4px;
+  padding:8px 4px 10px;
+  background:linear-gradient(180deg,var(--bg) 72%,rgba(244,239,230,0));
+  scrollbar-width:none;
+}
+.portal-tabs::-webkit-scrollbar{display:none}
+.portal-tabs button{min-height:42px;padding:0 16px}
+.portal-card+.portal-card{margin-top:14px}
+.portal-invite form .search{min-width:0}
+.team-actions{display:flex!important;flex-direction:row!important;align-items:center;gap:6px}
+.team-actions button{padding:8px 10px;border-radius:10px!important;text-decoration:none!important;background:var(--paper)!important}
+.branding-card{min-width:0}
+.branding-controls input[type=range]{min-height:32px}
+
+@media(max-width:559px){
+  .portal-shell{padding-left:10px;padding-right:10px}
+  .portal-head{margin:4px 6px 14px;align-items:flex-start}
+  .portal-head h1{font-size:28px;line-height:1.05}
+  .portal-head button{font-size:0;padding:0;width:44px;justify-content:center}
+  .portal-head button svg{width:19px;height:19px}
+  .portal-tabs{
+    margin-left:-10px;
+    margin-right:-10px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .portal-card{border-radius:20px;padding:18px 16px}
+  .portal-section-title h2{font-size:24px}
+  .portal-section-title p{font-size:12px;line-height:1.55}
+  .portal-invite form{gap:8px}
+  .portal-invite .primary{width:100%;min-height:52px}
+  .team-row{align-items:flex-start;flex-direction:column;padding:13px}
+  .team-row>div:first-child{width:100%}
+  .team-actions{width:100%;justify-content:flex-end}
+  .branding-grid{grid-template-columns:1fr;gap:12px}
+  .branding-card{display:grid;grid-template-columns:minmax(112px,38%) 1fr;align-items:stretch}
+  .branding-preview{aspect-ratio:auto;min-height:190px}
+  .branding-controls{align-content:center;padding:12px}
+  .branding-controls label:not(.upload-control){grid-template-columns:1fr;gap:3px}
+  .upload-control{min-height:48px;text-align:center;padding:6px}
+  .portal-login{margin:5vh auto}
+}
+
+@media(min-width:760px){
+  .portal-shell{padding:38px clamp(24px,4vw,56px) 84px}
+  .portal-head{margin-bottom:18px}
+  .portal-head h1{font-size:36px}
+  .portal-tabs{
+    position:static;
+    padding:0;
+    background:transparent;
+    margin:0 0 18px;
+  }
+  .portal-tabs button{min-height:40px}
+  .portal-card{padding:28px}
+  .portal-invite{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+  .branding-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+}
+
+@media(min-width:1100px){
+  .portal-wrap{width:min(1240px,100%)}
+  .portal-card{border-radius:28px;padding:30px}
+  .portal-section-title h2{font-size:30px}
+  .branding-grid{gap:18px}
+}
+
+/* Very short phone screens: preserve primary QR actions above the fold. */
+@media(max-height:720px) and (max-width:559px){
+  .landing-content{padding-top:86px;padding-bottom:max(28px,env(safe-area-inset-bottom))}
+  .landing-kicker{margin-bottom:8px}
+  .landing-content h1{font-size:48px}
+  .landing-rule{margin:14px 0 12px}
+  .welcome-chip{margin-bottom:10px}
+  .landing-content p{margin-bottom:14px;font-size:15px}
+  .landing-cta{height:54px}
+  .landing-actions{margin-top:9px}
+  .slide-dots{margin-top:14px}
+}
