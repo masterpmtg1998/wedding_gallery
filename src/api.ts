@@ -411,3 +411,25 @@ export async function getMySellerApplications(){
   const {data,error}=await supabase.from('marketplace_seller_applications').select('*').eq('applicant_user_id',user.id).order('created_at',{ascending:false});
   if(error)throw error;return data??[];
 }
+
+
+export type PlannerJourneyState={
+  id:string;wedding_id:string;journey_key:string;
+  status:'not_started'|'active'|'waiting'|'done'|'skipped';
+  current_focus:string|null;waiting_for:string|null;notes:string|null;
+  structured_data:Record<string,any>;updated_at:string;created_at:string;
+};
+export async function getPlannerJourneyStates(weddingId:string){
+  const {data,error}=await supabase.from('planner_journey_state').select('*').eq('wedding_id',weddingId);
+  if(error)throw error; return (data??[]) as PlannerJourneyState[];
+}
+export async function upsertPlannerJourneyState(weddingId:string,journeyKey:string,value:{
+  status:PlannerJourneyState['status'];current_focus?:string|null;waiting_for?:string|null;notes?:string|null;structured_data?:Record<string,any>
+}){
+  const {data,error}=await supabase.rpc('upsert_planner_journey_state',{
+    p_wedding_id:weddingId,p_journey_key:journeyKey,p_status:value.status,
+    p_current_focus:value.current_focus??null,p_waiting_for:value.waiting_for??null,
+    p_notes:value.notes??null,p_structured_data:value.structured_data??{}
+  });
+  if(error)throw error; return data as PlannerJourneyState;
+}
