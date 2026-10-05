@@ -1098,3 +1098,39 @@ button,input,select,a{touch-action:manipulation}
   .portal-logout{width:42px!important;height:42px!important;padding:0!important;display:grid!important;place-items:center!important}
   .portal-subnav{width:100%}.portal-subnav button{flex:1}
 }
+
+
+/* Bottom navigation + contextual journey navigation */
+.portal-wrap{padding-bottom:96px}
+.portal-bottom-nav{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;width:min(720px,calc(100% - 24px));display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px;border:1px solid rgba(214,205,192,.9);border-radius:22px;background:rgba(250,247,241,.94);backdrop-filter:blur(18px);box-shadow:0 14px 38px rgba(39,34,29,.14)}
+.portal-bottom-nav button{min-height:58px;border:0;border-radius:16px;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:8px}
+.portal-bottom-nav button svg{width:18px;height:18px}.portal-bottom-nav button.active{background:var(--green);color:#fff}
+.portal-bottom-nav button.active span{color:#fff}
+.portal-drawer.contextual{width:min(390px,94vw)}
+.planning-stage-nav{padding-top:2px}
+.planning-stage-nav button{grid-template-columns:34px minmax(0,1fr) auto}
+.stage-nav-progress{font-size:8px!important;color:var(--muted)!important}
+.planning-now{display:grid;gap:12px}
+.journey-stage-card{display:grid;gap:18px}
+.journey-open-menu{min-height:40px;border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:0 12px;display:flex;align-items:center;gap:7px;color:var(--ink);font-size:9px}
+.journey-stage-flow{display:grid;gap:12px}
+.journey-milestone{border:1px solid var(--border);border-radius:18px;background:var(--paper);padding:14px}
+.journey-milestone-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.journey-milestone-head>div{display:flex;flex-direction:column;gap:3px}.journey-milestone-head strong{font-family:'Fraunces',serif;font-size:22px;font-weight:300}.journey-milestone-head span{font-size:8px;color:var(--muted)}
+.journey-status{flex:0 0 auto;border-radius:999px;padding:5px 8px;background:#efede7;color:#6f6a62!important}.journey-status.doing{background:#f4eadb;color:#956934!important}.journey-status.done{background:#e7efe9;color:#466451!important}
+.journey-progress{height:6px;border-radius:999px;background:#ebe6dd;overflow:hidden;margin:12px 0}.journey-progress>span{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .25s}
+.journey-actions{display:grid;gap:6px}.journey-actions button{width:100%;min-height:54px;border:1px solid var(--border);border-radius:13px;background:var(--surface);display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:9px;padding:9px 10px;text-align:left;color:var(--ink)}
+.journey-actions button>span{width:28px;height:28px;display:grid;place-items:center}.journey-actions button i{width:16px;height:16px;border:1.5px solid #b8b0a4;border-radius:50%;display:block}.journey-actions button.done{opacity:.58}.journey-actions button.done strong{text-decoration:line-through}
+.journey-actions button>div{display:flex;flex-direction:column;gap:2px}.journey-actions strong{font-size:10px}.journey-actions small{font-size:8px;color:var(--muted)}
+
+@media(min-width:900px){
+  .portal-bottom-nav{bottom:18px}
+}
+@media(max-width:640px){
+  .portal-wrap{padding-bottom:104px}
+  .portal-bottom-nav{width:calc(100% - 16px);bottom:max(8px,env(safe-area-inset-bottom));border-radius:20px}
+  .portal-bottom-nav button{min-height:56px;font-size:7px;padding:0 2px}
+  .portal-bottom-nav button svg{width:17px;height:17px}
+  .journey-milestone-head{align-items:flex-start}
+  .journey-milestone-head strong{font-size:20px}
+}
