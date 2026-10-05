@@ -10,10 +10,11 @@ import {
 import { supabase } from '../supabase';
 import PlannerSuite from '../components/PlannerSuite';
 import GuestExperiencePanel from '../components/GuestExperiencePanel';
+import Marketplace from './Marketplace';
 
 type Item={id:string;slot:number;url:string;focal_x:number;focal_y:number;original_name:string|null};
 type AuthMode='login'|'signup'|'forgot';
-type Tab='dashboard'|'tarefas'|'planeamento'|'convidados'|'mesas'|'fornecedores'|'orcamento'|'equipa'|'specialday';
+type Tab='dashboard'|'tarefas'|'planeamento'|'convidados'|'mesas'|'fornecedores'|'orcamento'|'loja'|'equipa'|'specialday';
 
 const eur=(n:number)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
 const dayDiff=(iso:string)=>Math.ceil((new Date(iso+'T12:00:00').getTime()-Date.now())/86400000);
@@ -26,9 +27,9 @@ export default function Portal(){
   const [resending,setResending]=useState(''); const [team,setTeam]=useState<any[]>([]);
   const [location,navigate]=useLocation();
   const pathSection=location.split('/')[2]||'assistente';
-  const pathToTab:Record<string,Tab>={assistente:'dashboard',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',equipa:'equipa',specialday:'specialday'};
+  const pathToTab:Record<string,Tab>={assistente:'dashboard',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',loja:'loja',equipa:'equipa',specialday:'specialday'};
   const tab:Tab=pathToTab[pathSection]||'dashboard';
-  const tabPath:Record<Tab,string>={dashboard:'assistente',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',equipa:'equipa',specialday:'specialday'};
+  const tabPath:Record<Tab,string>={dashboard:'assistente',tarefas:'tarefas',planeamento:'planeamento',convidados:'convidados',mesas:'mesas',fornecedores:'fornecedores',orcamento:'orcamento',loja:'loja',equipa:'equipa',specialday:'specialday'};
   const go=(next:Tab)=>navigate('/portal/'+tabPath[next]);
   const [tasks,setTasks]=useState<PlannerTask[]>([]); const [vendors,setVendors]=useState<PlannerVendor[]>([]); const [budget,setBudget]=useState<PlannerBudgetItem[]>([]);
   const [taskTitle,setTaskTitle]=useState(''); const [taskDue,setTaskDue]=useState(''); const [taskFilter,setTaskFilter]=useState<'pending'|'done'|'all'>('pending'); const [vendorName,setVendorName]=useState('');
@@ -96,8 +97,8 @@ export default function Portal(){
     {message&&<p className="notice">{message}</p>}<div className="auth-links"><button onClick={()=>supabase.auth.signOut()}>Sair</button></div>
   </section></main>;
 
-  const nav:Tab[]=['dashboard','tarefas','planeamento','convidados','mesas','fornecedores','orcamento','specialday','equipa'];
-  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',planeamento:'Planeamento',convidados:'Convidados',mesas:'Mesas',fornecedores:'Fornecedores',orcamento:'Orçamento',equipa:'Equipa',specialday:'Special day'};
+  const nav:Tab[]=['dashboard','tarefas','planeamento','convidados','mesas','fornecedores','orcamento','specialday','loja','equipa'];
+  const labels:Record<Tab,string>={dashboard:'Assistente',tarefas:'Tarefas',planeamento:'Planeamento',convidados:'Convidados',mesas:'Mesas',fornecedores:'Fornecedores',orcamento:'Orçamento',loja:'Marketplace',equipa:'Equipa',specialday:'Special day'};
 
   return <main className="portal-shell"><div className="portal-wrap">
     <header className="portal-head"><div><span>Wedding Planner</span><h1>{wedding.couple_names}</h1></div><button onClick={()=>supabase.auth.signOut()}><LogOut size={16}/>Sair</button></header>
@@ -172,6 +173,8 @@ export default function Portal(){
     {tab==='planeamento'&&<PlannerSuite weddingId={wedding.id} mode="planning"/>}
     {tab==='convidados'&&<PlannerSuite weddingId={wedding.id} mode="guests"/>}
     {tab==='mesas'&&<PlannerSuite weddingId={wedding.id} mode="tables"/>}
+
+    {tab==='loja'&&<Marketplace/>}
 
     {tab==='fornecedores'&&<section className="portal-card">
       <div className="portal-section-title"><div><span>Rede de fornecedores</span><h2>Fornecedores</h2><p>Pesquisa, propostas, adjudicação, próximos passos e pagamentos.</p></div><HeartHandshake size={24}/></div>
